@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0d12">
+  <title>Lupixis Timer · Controller</title>
+  <link rel="icon" href="/shared/icon.svg">
+  <link rel="stylesheet" href="/controller/controller.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><img src="/shared/logo.svg" alt="Lupixis Timer"></div>
+    <div class="conn" id="conn"><span class="dot"></span><span id="connText"></span></div>
+    <span class="badge remote" id="remoteBadge" hidden></span>
+    <div class="spacer"></div>
+    <button class="btn small topbtn" id="btnScreen2" hidden data-i18n="top.screen2" data-i18n-title="top.screen2Hint">Timer on screen 2</button>
+    <button class="btn small topbtn" id="btnTouch" data-i18n-title="top.touchHint">☝</button>
+    <button class="btn small topbtn" id="btnFullscreen" hidden data-i18n-title="top.fullscreenHint">⛶</button>
+    <span class="muted small" id="clientsCount"></span>
+    <div class="topclock" id="topClock"></div>
+  </header>
+
+  <div class="layout">
+    <!-- ============ NOW ============ -->
+    <section class="col col-now">
+      <div class="card now" id="nowCard">
+        <div class="now-meta">
+          <span class="cue-badge" id="nowIndex">–</span>
+          <div class="now-text">
+            <div class="now-title" id="nowTitle"></div>
+            <div class="muted small" id="nowSpeaker"></div>
+          </div>
+          <span class="state-pill" id="nowState"></span>
+        </div>
+        <div class="bigtime" id="bigTime">--:--</div>
+        <div class="progress"><div id="bigProgress"></div></div>
+        <div class="now-sub muted small"><span id="nowEnds"></span><span id="nowNext"></span></div>
+        <div class="now-auto small" id="nowAuto"></div>
+        <div class="now-clips small" id="nowClips"></div>
+
+        <div class="transport">
+          <button class="btn icon" id="btnPrev" data-i18n-title="transport.previous" aria-label="Previous">
+            <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>
+          </button>
+          <button class="btn primary go" id="btnToggle"><span id="toggleLabel" data-i18n="transport.start">Start</span></button>
+          <button class="btn icon" id="btnNext" data-i18n-title="transport.next" aria-label="Next">
+            <svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>
+          </button>
+          <button class="btn icon" id="btnReset" data-i18n-title="transport.reset" aria-label="Reset">
+            <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg>
+          </button>
+        </div>
+        <div class="adjust" id="adjustRow">
+          <button class="btn" data-add="-60">−1m</button>
+          <button class="btn" data-add="-10">−10s</button>
+          <button class="btn" data-add="10">+10s</button>
+          <button class="btn" data-add="60">+1m</button>
+          <button class="btn" data-add="300">+5m</button>
+        </div>
+        <form class="row" id="setTimeForm">
+          <input id="setTimeInput" data-i18n-placeholder="transport.setPlaceholder" autocomplete="off">
+          <button class="btn" type="submit" data-i18n="transport.set">Set</button>
+        </form>
+        <div class="row">
+          <button class="btn grow" id="btnBlackout" data-i18n="transport.blackout">Blackout</button>
+          <button class="btn grow" id="btnFlash" data-i18n="transport.flash">Flash</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span data-i18n="preview.confidence">Confidence monitor</span>
+          <a href="/viewer" target="_blank" class="link small" data-i18n="common.open">Open ↗</a>
+        </div>
+        <div class="frame16x9"><iframe src="/viewer?preview=1" title="Confidence preview" tabindex="-1"></iframe></div>
+      </div>
+    </section>
+
+    <!-- ============ RUNDOWN ============ -->
+    <section class="col col-rundown">
+      <div class="card rundown-card">
+        <div class="card-head">
+          <h2 data-i18n="rundown.title">Rundown</h2>
+          <span class="muted small" id="rundownTotal"></span>
+          <div class="spacer"></div>
+          <button class="btn primary" id="btnAddCue">+ <span data-i18n="rundown.add">Add cue</span></button>
+          <details class="menu">
+            <summary class="btn" data-i18n-title="rundown.more">⋯</summary>
+            <div class="menu-list">
+              <button id="btnImportCsv" data-i18n="rundown.importCsv">Import from spreadsheet…</button>
+              <button id="btnExportShow" data-i18n="rundown.exportShow">Export show file</button>
+              <button id="btnImportShow" data-i18n="rundown.importShow">Import show file…</button>
+              <button id="btnReport" data-i18n="rundown.report">Download show report (CSV)</button>
+              <hr>
+              <button id="btnClearRundown" class="danger" data-i18n="rundown.clear">Clear rundown</button>
+            </div>
+          </details>
+        </div>
+        <div class="cue-grid cue-header">
+          <span>#</span>
+          <span data-i18n="rundown.colTitle">Title / speaker</span>
+          <span data-i18n="rundown.colType">Type</span>
+          <span class="h-time" data-i18n="rundown.colStart" data-i18n-title="rundown.startHint">Start</span>
+          <span class="h-time" data-i18n="rundown.colDuration">Duration</span>
+          <span class="h-time" data-i18n="rundown.colEnd" data-i18n-title="rundown.endHint">End</span>
+          <span class="h-auto" data-i18n-title="rundown.autoHint" data-i18n="rundown.colAuto">Auto-next</span>
+          <span></span>
+        </div>
+        <div id="cueList"></div>
+        <div class="empty" id="emptyRundown">
+          <p data-i18n="rundown.empty">No cues yet. Add one, or import a list from Excel / Google Sheets.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SIDE TABS ============ -->
+    <section class="col col-side">
+      <nav class="tabs" id="tabs">
+        <button data-tab="message" data-i18n="tabs.message">Message</button>
+        <button data-tab="broadcast" data-i18n="tabs.broadcast">Broadcast</button>
+        <button data-tab="clips" data-i18n="tabs.clips">Clips</button>
+        <button data-tab="outputs" data-i18n="tabs.outputs">Outputs</button>
+        <button data-tab="settings" data-i18n="tabs.settings">Settings</button>
+      </nav>
+
+      <!-- Message -->
+      <div class="card tab" id="tab-message">
+        <div class="card-title"><span data-i18n="message.title">Message to speaker</span><span class="badge live" id="msgLive" data-i18n="message.onScreen">On screen</span></div>
+        <textarea id="msgText" rows="3" data-i18n-placeholder="message.placeholder"></textarea>
+        <div class="row wrap">
+          <div class="swatches" id="msgColors">
+            <button data-color="white" class="sw sw-white" title="White"></button>
+            <button data-color="yellow" class="sw sw-yellow" title="Yellow"></button>
+            <button data-color="red" class="sw sw-red" title="Red"></button>
+            <button data-color="green" class="sw sw-green" title="Green"></button>
+            <button data-color="blue" class="sw sw-blue" title="Blue"></button>
+          </div>
+          <label class="check"><input type="checkbox" id="msgFlash"><span data-i18n="message.flash">Flash</span></label>
+        </div>
+        <div class="row">
+          <button class="btn primary grow" id="btnMsgShow" data-i18n="message.show">Show</button>
+          <button class="btn grow" id="btnMsgHide" data-i18n="message.hide">Hide</button>
+        </div>
+        <div class="card-title sub"><span data-i18n="message.presets">Quick messages</span><button class="link small" id="btnEditPresets" data-i18n="common.edit">Edit</button></div>
+        <div class="presets" id="presetList"></div>
+        <div id="presetEditor" hidden>
+          <textarea id="presetText" rows="6"></textarea>
+          <p class="hint" data-i18n="message.presetsHint">One message per line.</p>
+          <button class="btn primary" id="btnSavePresets" data-i18n="common.save">Save</button>
+        </div>
+      </div>
+
+      <!-- Broadcast -->
+      <div class="card tab" id="tab-broadcast" hidden>
+        <button class="btn onair" id="btnOnAir"><span class="dot"></span><span id="onAirLabel"></span></button>
+        <div class="seg" id="layoutSeg">
+          <button data-layout="fullscreen" data-i18n="broadcast.fullscreen">Full screen</button>
+          <button data-layout="lowerthird" data-i18n="broadcast.lowerthird">Lower third</button>
+          <button data-layout="bar" data-i18n="broadcast.bar">Bar</button>
+          <button data-layout="corner" data-i18n="broadcast.corner">Corner</button>
+        </div>
+        <div class="frame16x9 checker"><iframe src="/overlay?checker=1&always=1&preview=1" title="Broadcast preview" tabindex="-1"></iframe></div>
+        <label class="field"><span data-i18n="broadcast.label">Label</span><input id="ovLabel" data-i18n-placeholder="broadcast.labelPlaceholder"></label>
+        <label class="field"><span data-i18n="broadcast.subLabel">Second line</span><input id="ovSubLabel"></label>
+        <div class="row">
+          <label class="field grow"><span data-i18n="broadcast.atZero">When it reaches zero</span>
+            <select id="ovAtZero">
+              <option value="hold" data-i18n="broadcast.zeroHold">Stay at 00:00</option>
+              <option value="text" data-i18n="broadcast.zeroText">Show text</option>
+              <option value="overtime" data-i18n="broadcast.zeroOvertime">Count overtime</option>
+            </select>
+          </label>
+          <label class="field grow" id="ovZeroTextField"><span data-i18n="broadcast.zeroTextLabel">Text</span><input id="ovZeroText"></label>
+        </div>
+        <details class="section" open>
+          <summary data-i18n="broadcast.timeStyle">Time &amp; progress</summary>
+          <div class="row">
+            <label class="field grow"><span data-i18n="broadcast.progress">Progress</span>
+              <select data-ov="progressStyle">
+                <option value="bar" data-i18n="broadcast.progressBar">Bar</option>
+                <option value="ring" data-i18n="broadcast.progressRing">Ring</option>
+                <option value="none" data-i18n="broadcast.progressNone">None</option>
+              </select>
+            </label>
+            <label class="field grow"><span data-i18n="broadcast.digitAnimation">Digit animation</span>
+              <select data-ov="digitAnimation">
+                <option value="slide" data-i18n="broadcast.animSlide">Roll down</option>
+                <option value="fade" data-i18n="broadcast.animFade">Fade</option>
+                <option value="none" data-i18n="broadcast.animNone">None</option>
+              </select>
+            </label>
+          </div>
+          <label class="field"><span data-i18n="broadcast.highlight">Colour part of the time with the accent colour</span>
+            <select data-ov="highlight">
+              <option value="none" data-i18n="broadcast.hlNone">Nothing</option>
+              <option value="hours" data-i18n="broadcast.hlHours">Hours</option>
+              <option value="minutes" data-i18n="broadcast.hlMinutes">Minutes</option>
+              <option value="seconds" data-i18n="broadcast.hlSeconds">Seconds</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" data-ov="leadingZero"><span data-i18n="broadcast.leadingZero">Leading zero (05:07 instead of 5:07)</span></label>
+          <label class="check"><input type="checkbox" data-ov="hideZeroMinutes"><span data-i18n="broadcast.hideZeroMinutes">Under one minute show only seconds (animates out)</span></label>
+          <p class="hint" data-i18n="broadcast.hoursHint">Hours appear only when needed and animate away when they reach zero.</p>
+        </details>
+
+        <details class="section" open>
+          <summary data-i18n="broadcast.look">Look &amp; branding</summary>
+          <div class="row">
+            <label class="field grow"><span data-i18n="theme.font">Font</span>
+              <input id="thFont" list="fontList">
+              <datalist id="fontList">
+                <option>Segoe UI</option><option>Segoe UI Variable Display</option><option>Bahnschrift</option><option>Arial</option>
+                <option>Arial Black</option><option>Calibri</option><option>Consolas</option><option>Impact</option>
+                <option>Tahoma</option><option>Trebuchet MS</option><option>Verdana</option><option>Georgia</option>
+                <option>Helvetica Neue</option><option>Inter</option><option>Montserrat</option><option>Roboto</option>
+              </datalist>
+            </label>
+            <label class="field"><span data-i18n="theme.weight">Weight</span>
+              <select id="thWeight"><option>300</option><option>400</option><option>500</option><option>600</option><option>700</option><option>800</option><option>900</option></select>
+            </label>
+          </div>
+          <div class="row file-row">
+            <span class="muted small" id="thFontFile"></span>
+            <button class="btn small" id="btnFontUpload" data-i18n="theme.uploadFont">Upload font…</button>
+            <button class="btn small" id="btnFontClear" data-i18n="common.remove">Remove</button>
+          </div>
+          <div class="row colors">
+            <label class="color"><input type="color" id="thText"><span data-i18n="theme.text">Text</span></label>
+            <label class="color"><input type="color" id="thAccent"><span data-i18n="theme.accent">Accent</span></label>
+            <label class="color"><input type="color" id="thPanel"><span data-i18n="theme.panel">Panel</span></label>
+          </div>
+          <label class="field"><span><span data-i18n="theme.panelOpacity">Panel opacity</span> <b id="thOpacityVal"></b></span><input type="range" id="thOpacity" min="0" max="1" step="0.05"></label>
+          <label class="field"><span><span data-i18n="theme.radius">Corner radius</span> <b id="thRadiusVal"></b></span><input type="range" id="thRadius" min="0" max="60" step="1"></label>
+          <label class="check"><input type="checkbox" id="thUpper"><span data-i18n="theme.uppercase">Uppercase labels</span></label>
+          <div class="card-title sub"><span data-i18n="theme.logo">Logo</span></div>
+          <div class="row file-row">
+            <img id="thLogoPreview" class="thumb" alt="">
+            <label class="check"><input type="checkbox" id="thShowLogo"><span data-i18n="theme.showLogo">Show</span></label>
+            <div class="spacer"></div>
+            <button class="btn small" id="btnLogoBrand" data-i18n="theme.useBrandLogo">Lupixis logo</button>
+            <button class="btn small" id="btnLogoUpload" data-i18n="common.upload">Upload…</button>
+            <button class="btn small" id="btnLogoClear" data-i18n="common.remove">Remove</button>
+          </div>
+          <div class="card-title sub"><span data-i18n="theme.background">Full-screen background</span></div>
+          <div class="row">
+            <select id="thBg" class="grow">
+              <option value="none" data-i18n="theme.bgNone">None (transparent)</option>
+              <option value="color" data-i18n="theme.bgColor">Colour</option>
+              <option value="image" data-i18n="theme.bgImage">Image</option>
+            </select>
+            <input type="color" id="thBgColor">
+            <button class="btn small" id="btnBgUpload" data-i18n="common.upload">Upload…</button>
+          </div>
+        </details>
+
+        <details class="section">
+          <summary data-i18n="broadcast.addToSwitcher">Add to OBS / vMix</summary>
+          <p class="hint" data-i18n="broadcast.obsHint">Add a Browser Source (OBS) or Web Browser input (vMix) at 1920×1080 with this URL. The background is transparent.</p>
+          <div class="copyline"><input readonly id="overlayUrl"><button class="btn small" data-copy="overlayUrl" data-i18n="common.copy">Copy</button></div>
+          <p class="hint" data-i18n="broadcast.urlOptions">Options: add ?bg=chroma for a green background, ?always=1 to ignore On Air, ?layout=corner to force a layout.</p>
+        </details>
+      </div>
+
+      <!-- Clip timers -->
+      <div class="card tab" id="tab-clips" hidden>
+        <div class="card-title"><span data-i18n="clips.title">Clip timers (QLab / CasparCG)</span></div>
+        <p class="hint" data-i18n="clips.hint">While a tracked video or audio clip plays, speakers see a small pop-up with its name and time left.</p>
+        <label class="check"><input type="checkbox" data-viewer="showClips"><span data-i18n="clips.showOnMonitor">Show on the confidence monitor</span></label>
+        <label class="check"><input type="checkbox" data-floating="showClips"><span data-i18n="clips.showOnFloating">Show in the floating timer</span></label>
+
+        <details class="section integ" open>
+          <summary><span>QLab</span> <span class="istatus" id="qlabStatus"></span></summary>
+          <label class="check"><input type="checkbox" data-integ="qlab.enabled"><span data-i18n="clips.enable">Enable</span></label>
+          <div class="row">
+            <label class="field grow"><span data-i18n="clips.qlabHost">QLab computer (IP)</span><input data-integ="qlab.host" placeholder="192.168.1.50"></label>
+            <label class="field" style="width:90px"><span data-i18n="clips.port">Port</span><input data-integ="qlab.port" data-num></label>
+          </div>
+          <label class="field"><span data-i18n="clips.passcode">OSC passcode (if the workspace has one)</span><input data-integ="qlab.passcode"></label>
+          <div class="row">
+            <label class="field grow"><span data-i18n="clips.which">Show cues that</span>
+              <select data-integ="qlab.filter">
+                <option value="color" data-i18n="clips.byColor">have this colour</option>
+                <option value="tag" data-i18n="clips.byTag">have this text in name or notes</option>
+                <option value="all" data-i18n="clips.all">any running cue</option>
+              </select>
+            </label>
+            <label class="field" id="qlabColorField"><span data-i18n="clips.color">Colour</span>
+              <select data-integ="qlab.color">
+                <option>red</option><option>orange</option><option>yellow</option><option>green</option><option>blue</option><option>purple</option><option>none</option>
+              </select>
+            </label>
+            <label class="field" id="qlabTagField" style="width:90px"><span data-i18n="clips.tag">Text</span><input data-integ="qlab.tag"></label>
+          </div>
+        </details>
+
+        <details class="section integ" open>
+          <summary><span>CasparCG</span> <span class="istatus" id="casparStatus"></span></summary>
+          <label class="check"><input type="checkbox" data-integ="caspar.enabled"><span data-i18n="clips.enable">Enable</span></label>
+          <label class="field"><span data-i18n="clips.casparPort">OSC port to listen on</span><input data-integ="caspar.port" data-num></label>
+          <p class="hint" data-i18n="clips.casparHint">In casparcg.config add this computer's IP and this port under osc → predefined-clients.</p>
+          <div class="row">
+            <label class="field grow"><span data-i18n="clips.which">Show clips that</span>
+              <select data-integ="caspar.filter">
+                <option value="all" data-i18n="clips.casparAll">play on any layer</option>
+                <option value="layers" data-i18n="clips.casparLayers">play on these layers</option>
+                <option value="tag" data-i18n="clips.casparTag">have this text in the file name</option>
+              </select>
+            </label>
+            <label class="field" id="casparLayersField"><span data-i18n="clips.layers">Channel-layer</span><input data-integ="caspar.layers" placeholder="1-10, 1-20"></label>
+            <label class="field" id="casparTagField" style="width:90px"><span data-i18n="clips.tag">Text</span><input data-integ="caspar.tag"></label>
+          </div>
+        </details>
+
+        <div class="card-title sub"><span data-i18n="clips.nowPlaying">Playing now</span></div>
+        <div id="clipList" class="clip-list"></div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="card tab" id="tab-outputs" hidden>
+        <div id="thisComputer" hidden>
+          <div class="card-title"><span data-i18n="outputs.computer">This computer</span><span class="badge mode" id="modeBadge"></span></div>
+          <p class="hint" id="modeText"></p>
+          <div class="card-title sub"><span data-i18n="outputs.network">Timers on the network</span></div>
+          <div id="discoverList"></div>
+          <form class="row" id="connectForm">
+            <input id="connectInput" data-i18n-placeholder="outputs.connectPlaceholder" autocomplete="off">
+            <button class="btn" type="submit" data-i18n="outputs.connect">Connect</button>
+          </form>
+          <button class="btn wide" id="btnDisconnect" data-i18n="outputs.disconnect">Use this computer's own timer</button>
+          <hr class="sep">
+        </div>
+        <div id="desktopOutputs">
+          <div class="card-title"><span data-i18n="outputs.floating">Floating timer</span></div>
+          <p class="hint" data-i18n="outputs.floatingHint">A small always-on-top window you can place over PowerPoint's presenter view. Drag to move, drag the edges to resize.</p>
+          <button class="btn primary wide" id="btnFloating"></button>
+          <div class="card-title sub"><span data-i18n="outputs.screens">Fullscreen outputs</span></div>
+          <p class="hint" data-i18n="outputs.screensHint">Open a view fullscreen on a connected monitor, projector or LED processor. Press Shift+Esc on that screen to close it.</p>
+          <div id="displayList"></div>
+          <label class="field"><span data-i18n="outputs.takeover">When a second screen is connected, fill it with</span>
+            <select id="takeoverSelect">
+              <option value="none" data-i18n="outputs.takeoverNone">Nothing (choose above)</option>
+              <option value="viewer" data-i18n="outputs.takeoverViewer">Confidence monitor</option>
+              <option value="overlay" data-i18n="outputs.takeoverOverlay">Broadcast graphic</option>
+            </select>
+          </label>
+          <p class="hint" data-i18n="outputs.takeoverHint">Saved on this computer. Also applies when the app starts, like a dedicated timer box.</p>
+          <button class="btn wide" id="btnCloseOutputs" data-i18n="outputs.closeAll">Close all outputs</button>
+        </div>
+        <p class="hint" id="browserOnlyNote" data-i18n="outputs.browserOnly">The floating window and fullscreen outputs are available in the desktop app. You can still open any view below in a browser.</p>
+
+        <div class="card-title sub"><span data-i18n="outputs.links">Links for other devices</span></div>
+        <p class="hint" data-i18n="outputs.linksHint">Any phone, tablet or computer on the same network can open these.</p>
+        <select id="addrSelect" class="wide"></select>
+        <div id="linkList"></div>
+        <div class="qr-wrap"><img id="qrImg" alt="QR code"><div class="muted small" id="qrLabel"></div></div>
+      </div>
+
+      <!-- Settings -->
+      <div class="card tab" id="tab-settings" hidden>
+        <label class="field"><span data-i18n="settings.language">Language</span><select id="setLanguage"></select></label>
+        <p class="hint" data-i18n="settings.translateHint">Translations live in public/locales. Copy en.json to add a new language.</p>
+
+        <div class="card-title sub"><span data-i18n="settings.defaults">New cue defaults</span></div>
+        <div class="row">
+          <label class="field grow"><span data-i18n="settings.duration">Duration</span><input id="setDuration"></label>
+          <label class="field grow"><span data-i18n="settings.warning">Yellow at</span><input id="setWarning"></label>
+          <label class="field grow"><span data-i18n="settings.critical">Red at</span><input id="setCritical"></label>
+        </div>
+        <label class="check"><input type="checkbox" id="setAutoStart"><span data-i18n="settings.autoStart">Start cues automatically at their start time</span></label>
+
+        <div class="card-title sub"><span data-i18n="settings.viewer">Confidence monitor shows</span></div>
+        <label class="check"><input type="checkbox" data-viewer="showTitle"><span data-i18n="settings.showTitle">Cue title &amp; speaker</span></label>
+        <label class="check"><input type="checkbox" data-viewer="showClock"><span data-i18n="settings.showClock">Time of day</span></label>
+        <label class="check"><input type="checkbox" data-viewer="showNext"><span data-i18n="settings.showNext">Next cue</span></label>
+        <label class="check"><input type="checkbox" data-viewer="showProgress"><span data-i18n="settings.showProgress">Progress bar</span></label>
+        <label class="check"><input type="checkbox" data-viewer="clock24"><span data-i18n="settings.clock24">24-hour clock</span></label>
+        <label class="field"><span data-i18n="settings.idleDisplay">When no timer is running, show</span>
+          <select data-viewer-select="idleDisplay">
+            <option value="timer" data-i18n="settings.idleTimer">The timer (ready to start)</option>
+            <option value="clock" data-i18n="settings.idleClock">Time of day</option>
+            <option value="clockDate" data-i18n="settings.idleClockDate">Time of day and date</option>
+          </select>
+        </label>
+
+        <div class="card-title sub"><span data-i18n="settings.floating">Floating timer</span></div>
+        <label class="check"><input type="checkbox" data-floating="showProgress"><span data-i18n="settings.showProgress">Progress bar</span></label>
+        <label class="check"><input type="checkbox" data-floating="showMessage"><span data-i18n="settings.showMessage">Messages</span></label>
+        <label class="check"><input type="checkbox" data-floating="showTitle"><span data-i18n="settings.showCueTitle">Cue title</span></label>
+        <label class="field"><span data-i18n="settings.idleDisplay">When no timer is running, show</span>
+          <select data-floating-select="idleDisplay">
+            <option value="timer" data-i18n="settings.idleTimer">The timer (ready to start)</option>
+            <option value="clock" data-i18n="settings.idleClock">Time of day</option>
+            <option value="clockDate" data-i18n="settings.idleClockDate">Time of day and date</option>
+          </select>
+        </label>
+        <label class="field"><span data-i18n="settings.floatingControls">Control buttons (−1m, start/pause, +1m, next, minimise, close)</span>
+          <select data-floating-select="controls">
+            <option value="hover" data-i18n="settings.controlsHover">Show when the mouse is over the window</option>
+            <option value="always" data-i18n="settings.controlsAlways">Always show</option>
+            <option value="off" data-i18n="settings.controlsOff">Hidden</option>
+          </select>
+        </label>
+        <label class="field"><span><span data-i18n="settings.floatingOpacity">Window opacity</span> <b id="floatOpacityVal"></b></span>
+          <input type="range" id="floatOpacity" min="0.3" max="1" step="0.05"></label>
+        <label class="check" id="keepOnTopRow"><input type="checkbox" id="setKeepOnTop"><span data-i18n="settings.keepOnTop">Keep floating timer above fullscreen apps</span></label>
+
+        <div id="hotkeySettings">
+          <div class="card-title sub"><span data-i18n="settings.hotkeys">Global hotkeys</span></div>
+          <p class="hint" data-i18n="settings.hotkeysHint">Work even while PowerPoint is in front. Format: Control+Alt+Space. Leave empty to disable.</p>
+          <div id="hotkeyList"></div>
+        </div>
+
+        <div class="card-title sub"><span data-i18n="settings.data">Data</span></div>
+        <div class="row wrap">
+          <button class="btn" id="btnResetLog" data-i18n="settings.resetLog">Clear show report</button>
+        </div>
+        <p class="hint" id="aboutLine"></p>
+      </div>
+    </section>
+  </div>
+
+  <dialog id="csvDialog">
+    <form method="dialog" class="dialog">
+      <h3 data-i18n="csv.title">Import from spreadsheet</h3>
+      <p class="hint" data-i18n="csv.hint">Paste rows copied from Excel or Google Sheets, or CSV. Columns: Title, Duration, Speaker. A header row with names like Title, Speaker, Duration, Start, Notes is also understood.</p>
+      <textarea id="csvText" rows="10" placeholder="Opening	5:00	Host&#10;Keynote	30	Jane Doe&#10;Q&amp;A	10:00"></textarea>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="csvReplace" checked><span data-i18n="csv.replace">Replace current rundown</span></label>
+        <div class="spacer"></div>
+        <button class="btn" value="cancel" data-i18n="common.cancel">Cancel</button>
+        <button class="btn primary" value="ok" id="csvOk" data-i18n="csv.import">Import</button>
+      </div>
+    </form>
+  </dialog>
+
+  <input type="file" id="fileInput" hidden>
+  <div id="toasts"></div>
+  <script type="module" src="/controller/controller.js"></script>
+</body>
+</html>

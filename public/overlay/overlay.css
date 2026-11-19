@@ -1,0 +1,148 @@
+/* Broadcast graphic. Everything is laid out in pixels on a 1920×1080 canvas, then scaled. */
+:root {
+  --text: #e6e8e6;
+  --accent: #3772ff;
+  --panel: rgba(39, 41, 43, 0.85);
+  --radius: 18px;
+  --font: 'Segoe UI', system-ui, sans-serif;
+  --weight: 700;
+  --label-transform: uppercase;
+}
+
+html, body { margin: 0; height: 100%; overflow: hidden; background: transparent; }
+body.bg-black { background: #000; }
+body.bg-chroma { background: #00ff00; }
+body.bg-magenta { background: #ff00ff; }
+body.checker {
+  background: repeating-conic-gradient(#2a2e38 0% 25%, #1f222a 0% 50%) 0 0 / 32px 32px;
+}
+body.hide-cursor { cursor: none; }
+
+#canvas {
+  position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+  transform-origin: 0 0;
+  font-family: var(--font); color: var(--text); font-weight: var(--weight);
+}
+
+#graphic { position: absolute; inset: 0; opacity: 0; transition: opacity 0.6s ease; }
+#graphic.on { opacity: 1; }
+.panel { transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+.bgfill { position: absolute; inset: 0; display: none; background-size: cover; background-position: center; }
+.logo { display: none; object-fit: contain; }
+.has-logo .logo { display: block; }
+.label { text-transform: var(--label-transform); letter-spacing: 0.08em; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.time { font-variant-numeric: tabular-nums; line-height: 1; white-space: nowrap; letter-spacing: -0.01em; }
+.time.zero-text { letter-spacing: 0; }
+.sublabel { opacity: 0.75; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.label:empty, .sublabel:empty { display: none; }
+.bar { background: rgba(255, 255, 255, 0.15); overflow: hidden; }
+.fill { height: 100%; width: 0; background: var(--accent); }
+.prog-none .bar, .prog-ring .bar { display: none; }
+
+/* ---- animated time display (timedisplay.js) ---- */
+.timerow { display: flex; align-items: center; gap: 0.25em; }
+.td { display: inline-flex; align-items: baseline; white-space: nowrap; }
+.td-text { display: none; }
+.td.as-text > :not(.td-text) { display: none; }
+.td.as-text .td-text { display: inline; font-size: 0.47em; letter-spacing: 0; padding: 0.1em 0; }
+/* Segments collapse smoothly when hours/minutes are no longer needed. */
+.seg { display: inline-flex; overflow: hidden; max-width: 6em; padding: 0.06em 0; transition: max-width 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.45s; }
+.seg.gone { max-width: 0; opacity: 0; }
+.digits { display: inline-flex; }
+.slot { position: relative; display: inline-block; }
+.d { display: inline-block; }
+.d.out { position: absolute; left: 0; top: 0; }
+/* Rolling digits: the new digit pushes the old one down, both fading. */
+.d.in.a-slide { animation: d-in-slide 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.d.out.a-slide { animation: d-out-slide 0.38s cubic-bezier(0.4, 0, 0.6, 1) both; }
+.d.in.a-fade { animation: d-in-fade 0.38s ease both; }
+.d.out.a-fade { animation: d-out-fade 0.38s ease both; }
+@keyframes d-in-slide { from { transform: translateY(-0.5em); opacity: 0; } }
+@keyframes d-out-slide { to { transform: translateY(0.5em); opacity: 0; } }
+@keyframes d-in-fade { from { opacity: 0; } }
+@keyframes d-out-fade { to { opacity: 0; } }
+/* Colour just one part of the time. */
+.td[data-highlight="hours"] .seg-h .digits,
+.td[data-highlight="minutes"] .seg-m .digits,
+.td[data-highlight="seconds"] .seg-s .digits { color: var(--accent); }
+
+/* ---- ring progress ---- */
+.ring { display: none; flex: none; }
+.ring circle { fill: none; }
+.ring-track { stroke: rgba(255, 255, 255, 0.15); }
+.ring-fill { stroke: var(--accent); stroke-dasharray: 100; stroke-dashoffset: 0; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset 0.25s linear; }
+.ring-big circle { stroke-width: 2.6; }
+.ring-mini circle { stroke-width: 13; }
+.prog-ring .ring-mini { display: block; }
+.layout-fullscreen.prog-ring .ring-mini { display: none; }
+.layout-fullscreen.prog-ring .ring-big { display: block; position: absolute; left: 50%; top: 50%; width: 900px; height: 900px; transform: translate(-50%, -50%); }
+.layout-fullscreen.prog-ring .time { font-size: 230px; }
+.layout-fullscreen.prog-ring .label { font-size: 48px; max-width: 700px; }
+.layout-fullscreen.prog-ring .sublabel { font-size: 36px; max-width: 700px; }
+.layout-fullscreen.prog-ring .logo { max-height: 90px; max-width: 360px; margin-bottom: 0; }
+.layout-lowerthird .ring-mini { width: 96px; height: 96px; }
+.layout-bar .ring-mini { width: 70px; height: 70px; }
+.layout-bar .timerow { margin-left: auto; }
+.layout-bar .timerow .time { margin-left: 0; }
+.layout-corner .ring-mini { width: 66px; height: 66px; }
+
+/* ---- Full screen: "Starting in 04:59" ---- */
+.layout-fullscreen .bgfill.show { display: block; }
+.layout-fullscreen .panel {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.45);
+}
+.layout-fullscreen .texts { display: flex; flex-direction: column; align-items: center; gap: 18px; max-width: 1700px; }
+.layout-fullscreen .logo { max-height: 150px; max-width: 600px; margin-bottom: 30px; }
+.layout-fullscreen .label { font-size: 60px; max-width: 1700px; }
+.layout-fullscreen .time { font-size: 300px; }
+.layout-fullscreen .time.zero-text { font-size: 140px; }
+.layout-fullscreen .sublabel { font-size: 44px; max-width: 1700px; }
+.layout-fullscreen .bar { width: 900px; height: 10px; border-radius: 10px; margin-top: 30px; }
+.layout-fullscreen .fill { border-radius: 10px; }
+.layout-fullscreen:not(.on) .panel { transform: scale(0.97); }
+
+/* ---- Lower third ---- */
+.layout-lowerthird .panel {
+  position: absolute; left: 96px; bottom: 90px; min-width: 520px; max-width: 1400px;
+  display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 32px;
+  background: var(--panel); border-radius: var(--radius); border-left: 12px solid var(--accent);
+  padding: 26px 44px 34px 36px; overflow: hidden;
+}
+.layout-lowerthird .logo { height: 96px; max-width: 220px; }
+.layout-lowerthird .texts { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.layout-lowerthird .label { font-size: 34px; }
+.layout-lowerthird .time { font-size: 120px; }
+.layout-lowerthird .time.zero-text { font-size: 72px; padding: 12px 0; }
+.layout-lowerthird .sublabel { font-size: 28px; }
+.layout-lowerthird .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 8px; }
+.layout-lowerthird:not(.on) .panel { transform: translateX(-120%); }
+
+/* ---- Full-width bar ---- */
+.layout-bar .panel {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 130px;
+  display: flex; align-items: center; gap: 36px; padding: 0 80px; background: var(--panel);
+}
+.layout-bar .logo { height: 76px; max-width: 260px; }
+.layout-bar .texts { flex: 1; display: flex; align-items: center; gap: 36px; min-width: 0; }
+.layout-bar .label { font-size: 44px; flex: 0 1 auto; }
+.layout-bar .sublabel { font-size: 32px; flex: 1; }
+.layout-bar .time { font-size: 92px; margin-left: auto; }
+.layout-bar .time.zero-text { font-size: 60px; }
+.layout-bar .bar { position: absolute; left: 0; right: 0; top: 0; height: 8px; }
+.layout-bar:not(.on) .panel { transform: translateY(110%); }
+
+/* ---- Corner bug ---- */
+.layout-corner .panel {
+  position: absolute; top: 60px; right: 60px; min-width: 300px;
+  display: flex; flex-direction: column; align-items: flex-end;
+  background: var(--panel); border-radius: var(--radius); padding: 18px 34px 24px; overflow: hidden;
+}
+.layout-corner .logo, .layout-corner .sublabel { display: none !important; }
+.layout-corner .texts { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.layout-corner .label { font-size: 24px; max-width: 600px; }
+.layout-corner .time { font-size: 92px; }
+.layout-corner .time.zero-text { font-size: 48px; padding: 8px 0; }
+.layout-corner .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; }
+.layout-corner:not(.on) .panel { transform: translateY(-160%); }

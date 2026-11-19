@@ -1,0 +1,56 @@
+{
+  "name": "lupixis-timer",
+  "productName": "Lupixis Timer",
+  "version": "0.4.0",
+  "description": "Show timer for confidence monitors, stage screens and broadcast overlays, with Bitfocus Companion control.",
+  "license": "MIT",
+  "type": "module",
+  "main": "src/main/electron-main.js",
+  "scripts": {
+    "start": "electron .",
+    "server": "node src/server/standalone.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "icon": "electron scripts/make-icon.js",
+    "dist": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "screenshots": "electron scripts/screenshots.js"
+  },
+  "build": {
+    "appId": "media.lupixis.timer",
+    "productName": "Lupixis Timer",
+    "files": [
+      "src/**/*",
+      "public/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.utilities"
+    }
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "electron": "^45.3.4",
+    "electron-builder": "^26.18.0"
+  }
+}

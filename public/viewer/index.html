@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Lupixis Timer · Timer</title>
+  <link rel="icon" href="/shared/icon.svg">
+  <link rel="stylesheet" href="/viewer/viewer.css">
+</head>
+<!--
+  Confidence-monitor view. URL options (all optional):
+    ?compact=1   just the digits (used by the floating window)
+    ?clock=0     hide time of day        ?title=0  hide cue title
+    ?next=0      hide "next" line        ?progress=0  hide progress bar
+    ?mirror=1    mirror horizontally (for prompter glass)
+    ?blackout=0  ignore blackout         ?controls=1  quick control bar on hover
+-->
+<body>
+  <div id="stage">
+    <header id="top">
+      <div id="title"></div>
+      <div id="status"><span id="pausedBadge" data-i18n="viewer.paused">Paused</span></div>
+      <div id="clock"></div>
+    </header>
+    <main id="timerBox"><div id="timerFit"><div id="timer">--:--</div></div><div id="date"></div></main>
+    <section id="message"><div id="messageText"></div></section>
+    <div id="progress"><div id="progressFill"></div></div>
+    <footer id="bottom"><div id="next"></div></footer>
+    <!-- Quick controls: floating window (on hover or always visible), or any view with ?controls=1 -->
+    <div id="controls">
+      <button data-action="addTime" data-seconds="-60" title="−1 minute">−1m</button>
+      <button data-action="toggle" id="ctlToggle" title="Start / pause">
+        <svg class="i-play" viewBox="0 0 24 24"><path d="M7 4v16l13-8z"/></svg>
+        <svg class="i-pause" viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+      </button>
+      <button data-action="addTime" data-seconds="60" title="+1 minute">+1m</button>
+      <button data-action="next" title="Next cue"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+      <span class="spacer"></span>
+      <button class="win" id="ctlMin" title="Minimise"><svg viewBox="0 0 24 24"><path d="M5 17h14v2.5H5z"/></svg></button>
+      <button class="win" id="ctlClose" title="Close"><svg viewBox="0 0 24 24"><path d="M6.4 4.6 12 10.2l5.6-5.6 1.8 1.8-5.6 5.6 5.6 5.6-1.8 1.8-5.6-5.6-5.6 5.6-1.8-1.8 5.6-5.6-5.6-5.6z"/></svg></button>
+    </div>
+  </div>
+  <!-- Clip timers (QLab / CasparCG): small pop-ups at the bottom while a tracked clip plays -->
+  <div id="clips"></div>
+  <div id="flash"></div>
+  <div id="blackout"></div>
+  <div id="offline" data-i18n="viewer.connecting">Connecting…</div>
+  <script type="module" src="/viewer/viewer.js"></script>
+</body>
+</html>
