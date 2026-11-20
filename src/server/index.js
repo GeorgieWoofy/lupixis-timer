@@ -36,6 +36,8 @@ const MIME = {
   '.mp4': 'video/mp4',
   '.webm': 'video/webm',
   '.csv': 'text/csv; charset=utf-8',
+  '.tgz': 'application/gzip', // Companion module package
+  '.companionconfig': 'application/octet-stream', // Companion page
 };
 
 // Short, friendly URLs for each view.

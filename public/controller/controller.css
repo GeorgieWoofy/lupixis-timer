@@ -409,3 +409,12 @@ body.touch .btn.icon-sm { width: 40px; min-height: 40px; }
 /* Expected times that differ from the plan (late start, overrun, rippling on). */
 .cue input.projected { color: #ff9f2e !important; font-weight: 600; }
 .cue input.projected::placeholder { color: #ff9f2e; opacity: 0.9; }
+
+/* ---- Companion module install steps ---- */
+ol.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+ol.steps li { padding-left: 4px; }
+ol.steps li > .btn, ol.steps li > .copyline { margin: 4px 0; }
+ol.steps .copyline input { font-family: Consolas, monospace; }
+.btn.disabled { opacity: 0.4; pointer-events: none; }
+a.btn { text-decoration: none; color: inherit; }
+a.btn.primary { color: var(--accent-ink); }

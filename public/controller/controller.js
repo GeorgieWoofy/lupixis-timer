@@ -1001,6 +1001,7 @@ function renderOutputs(s) {
 }
 
 function renderLinks() {
+  if (lang) renderCompanion();
   const sel = $('addrSelect');
   const hosts = [...info.addresses, 'localhost'];
   const prev = sel.value;
@@ -1027,6 +1028,33 @@ function renderLinks() {
   showQr(`${base}/viewer`, t('outputs.link.viewer'));
   $('overlayUrl').value = `${location.protocol}//${location.host}/overlay`;
 }
+// ---- Companion module downloads (built into the app by `npm run companion`) ----
+let companionInfo = null;
+fetch('/companion/info.json')
+  .then((r) => (r.ok ? r.json() : null))
+  .catch(() => null)
+  .then((ci) => {
+    companionInfo = ci;
+    if (langReady) renderCompanion(); // otherwise renderLinks() draws it once translations are loaded
+  });
+function renderCompanion() {
+  const ok = !!companionInfo;
+  $('companionMissing').hidden = ok;
+  $('dlModule').classList.toggle('disabled', !ok);
+  $('dlPage').classList.toggle('disabled', !ok);
+  if (ok) {
+    $('dlModule').href = `/companion/${companionInfo.module}`;
+    $('dlModule').setAttribute('download', companionInfo.module);
+    $('dlPage').href = `/companion/${companionInfo.page}`;
+    $('dlPage').setAttribute('download', companionInfo.page);
+    setText($('moduleVersion'), `v${companionInfo.version}`);
+  }
+  // What to type into the Companion connection: this timer's address.
+  const ip = info.addresses?.[0];
+  $('companionHost').value = `${t('companion.host')}: ${ip || '127.0.0.1'}   ${t('companion.port')}: ${info.port || 4848}`;
+  setText($('companionHostHint'), t('companion.hostHint'));
+}
+
 function showQr(url, label) {
   $('qrImg').src = `/api/qr?text=${encodeURIComponent(url)}`;
   setText($('qrLabel'), `${label} · ${url}`);

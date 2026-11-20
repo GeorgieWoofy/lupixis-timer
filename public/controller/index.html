@@ -364,6 +364,24 @@
         <select id="addrSelect" class="wide"></select>
         <div id="linkList"></div>
         <div class="qr-wrap"><img id="qrImg" alt="QR code"><div class="muted small" id="qrLabel"></div></div>
+
+        <hr class="sep">
+        <div class="card-title sub"><span data-i18n="companion.title">Stream Deck (Bitfocus Companion)</span></div>
+        <p class="hint" data-i18n="companion.hint">Install the Lupixis Timer module in Companion without any developer settings:</p>
+        <ol class="steps">
+          <li><a class="btn small primary" id="dlModule" download data-i18n="companion.download">Download Companion module</a> <span class="muted small" id="moduleVersion"></span></li>
+          <li data-i18n="companion.step2">In Companion's web interface: Modules → Import module package → choose the downloaded file.</li>
+          <li><span data-i18n="companion.step3">Connections → Add connection → search "Lupixis" → enter:</span>
+            <div class="copyline"><input readonly id="companionHost"><button class="btn small" data-copy="companionHost" data-i18n="common.copy">Copy</button></div>
+            <span class="muted small" id="companionHostHint"></span>
+          </li>
+          <li><span data-i18n="companion.step4">Optional, Companion 5.1+: a full ready-made page.</span>
+            <a class="btn small" id="dlPage" download data-i18n="companion.downloadPage">Download page</a>
+            <span class="muted small" data-i18n="companion.step4b">Import / Export → Import → import it into an empty page → choose your Lupixis connection.</span>
+          </li>
+        </ol>
+        <a class="btn small wide" href="http://127.0.0.1:8000" target="_blank" id="openCompanion" data-i18n="companion.open">Open Companion on this computer ↗</a>
+        <p class="hint" id="companionMissing" hidden data-i18n="companion.missing">The module files aren't in this build. Run "npm run companion" in the project folder.</p>
       </div>
 
       <!-- Settings -->

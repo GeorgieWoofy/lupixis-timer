@@ -3,7 +3,7 @@
 	"type": "page",
 	"companionBuild": "lupixis-timer-page-generator",
 	"page": {
-		"id": "Bjp_b0-Q4XRqUOscTKqY",
+		"id": "HuhcmRffgR9TCJKJ-shE",
 		"name": "Lupixis Timer",
 		"controls": {
 			"0": {
@@ -234,7 +234,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "9wxHs1c2OinobMW8fcZA",
+							"id": "a0XwMNwiwp6HUQr_b-mU",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "phase",
 							"options": {
@@ -250,7 +250,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "Heyry9sJ0LZ7Upj4s6qU",
+									"overrideId": "qGT0BPTUvrBxNkiR903W",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -259,7 +259,7 @@
 									}
 								},
 								{
-									"overrideId": "_4HULlVHd6tRYupHfgmV",
+									"overrideId": "4787djIKrMaTtMaHphWO",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -271,7 +271,7 @@
 						},
 						{
 							"type": "feedback",
-							"id": "pkNAHlT2IEkWq7NOcV3t",
+							"id": "aedRTxUTyeLinKBoEzpI",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "phase",
 							"options": {
@@ -287,7 +287,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "8J3tWcvHCt4XX3F8Ns5E",
+									"overrideId": "uiF2p8LIq44REUkWatoM",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -296,7 +296,7 @@
 									}
 								},
 								{
-									"overrideId": "f9tTEr9AKNx7Qi10aQjj",
+									"overrideId": "ovJILqDXb9HLgCENBdvv",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -308,7 +308,7 @@
 						},
 						{
 							"type": "feedback",
-							"id": "u4Ods4k6gt2yvVZFTdZZ",
+							"id": "s854Yghb-RRTCHprHZro",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "phase",
 							"options": {
@@ -324,7 +324,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "mgH3Q7laRpbbioL_jjKL",
+									"overrideId": "k9P-HGTjFzhyBh8eL5be",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -333,7 +333,7 @@
 									}
 								},
 								{
-									"overrideId": "mGyqPRsKgpkJuBIsleFb",
+									"overrideId": "8NRMZBSHuIWaToJ4Zbdq",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -350,7 +350,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "PjDN3sSFeKsfZTN8O6mt",
+										"id": "Tphi3iJ1APzClkBhOMit",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "toggle",
 										"options": {},
@@ -590,7 +590,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "ZPAovl1m-A-5mBv39QRg",
+							"id": "SPkzgtwFg1jKYuIuX4H5",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "running",
 							"options": {},
@@ -601,7 +601,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "NsncoIzquAB0ePKuz2MM",
+									"overrideId": "xahrT-nYDzyXt9b3chVA",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -610,7 +610,7 @@
 									}
 								},
 								{
-									"overrideId": "ChStQ-WVChQZMefnkikC",
+									"overrideId": "Jn4CH5qeUbsrSxQdHLeH",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -619,7 +619,7 @@
 									}
 								},
 								{
-									"overrideId": "v56PYS44Q5lpB9m96KW7",
+									"overrideId": "SPCHEhRQ2EOvlMcr5QoZ",
 									"elementId": "text0",
 									"elementProperty": "text",
 									"override": {
@@ -631,7 +631,7 @@
 						},
 						{
 							"type": "feedback",
-							"id": "jzDJBAX1_eRkMcCqv-k5",
+							"id": "Jha6ldAwLQ4Fb5cG7G1F",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "paused",
 							"options": {},
@@ -642,7 +642,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "NUhL6gfWlVHkFtqa2zD2",
+									"overrideId": "cB0WjR74ceiIrS4asaDv",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -651,7 +651,7 @@
 									}
 								},
 								{
-									"overrideId": "MPMD_cCYa0SXt-SF6Wc1",
+									"overrideId": "i-9-JaTCiVYbalNB3Xsg",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -660,7 +660,7 @@
 									}
 								},
 								{
-									"overrideId": "ttcxl5qTck-Dt8ciDJtl",
+									"overrideId": "j5QzakqB_F4RBBiXju-3",
 									"elementId": "text0",
 									"elementProperty": "text",
 									"override": {
@@ -677,7 +677,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "13JaeLm5scpxtXA38W0U",
+										"id": "XLTcQHgZ_2mHdmPSUaK-",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "toggle",
 										"options": {},
@@ -917,7 +917,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "N04005OYD5lEF1xxb2dL",
+							"id": "dH0MCqhFR1q-dAol_Oda",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "running",
 							"options": {},
@@ -928,7 +928,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "hmvns_kbsxhShjppHWQG",
+									"overrideId": "0jJWK92zQao9YDLcWmim",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -937,7 +937,7 @@
 									}
 								},
 								{
-									"overrideId": "Ycw_5cTjwU92D7WsgWxm",
+									"overrideId": "rSK_V5D0s9nF7q6WSOBI",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -954,7 +954,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "avZYblx1d4Unvz8KzDg-",
+										"id": "MU_Y48IFf76g6gNLQdxt",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "stop",
 										"options": {},
@@ -1198,7 +1198,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "5LW81T9fYIgKAY_qpy4t",
+										"id": "1wanrV2Ok0dtiCd2DJ3L",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "reset",
 										"options": {},
@@ -1442,7 +1442,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "iaxaXoqkUlB3cHc4G5Qm",
+										"id": "Ta8W3e6-P0zqhoC2gzbX",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "previous",
 										"options": {},
@@ -1686,7 +1686,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "rHByTV0gP6wrfYkFeRWE",
+										"id": "4qD8wnCcnkRWXgS6zNRB",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "next",
 										"options": {},
@@ -1930,7 +1930,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "SZR8YNJXmhSG9bGEmZRE",
+										"id": "mpb0BEcIirJ1kjfTRXOZ",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "start_next",
 										"options": {},
@@ -2179,7 +2179,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "kkyk_DITpZwGc0VAFl6W",
+										"id": "p0kPOlCc5MozpHKkBMBZ",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "add_time",
 										"options": {
@@ -2428,7 +2428,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "M_GrmuggfEfzfRb0zbgN",
+										"id": "Md6vDXwoRQYT8foO8HjO",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "add_time",
 										"options": {
@@ -2677,7 +2677,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "47GbDrJBTEx6c_DryJSZ",
+										"id": "jGtab3JkIuJejtlntcfO",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "add_time",
 										"options": {
@@ -2926,7 +2926,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "shmyQscwsZ61oNyPX7lJ",
+										"id": "XZDRA_QmjZTGnj4c8wWe",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "add_time",
 										"options": {
@@ -3175,7 +3175,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "YJaApYTeeHdeqpEmWx7v",
+										"id": "LNJOcN_dD3n8NzyqeAYw",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "add_time",
 										"options": {
@@ -3424,7 +3424,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "tyMsD2WvAOKTHgqsvieA",
+										"id": "pVEyyyyUDdUJ3W41Qk6r",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "add_time",
 										"options": {
@@ -3909,7 +3909,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "xvP14UZi7_xLnFDDV4aT",
+							"id": "kKYsvPz75VHQ_vv_WPLK",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "preset_visible",
 							"options": {
@@ -3925,7 +3925,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "aGqn2L6KrYdC80rlskIh",
+									"overrideId": "EPYkkxTWvjClHzdISyoR",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -3934,7 +3934,7 @@
 									}
 								},
 								{
-									"overrideId": "tnZnv6C298n5kUMXhrng",
+									"overrideId": "yJJaD-acbZqZEnOYlOLJ",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -3951,7 +3951,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "Koj4Ga_oxkSrMVxOqBTd",
+										"id": "2LpVdS8CDTiMZZSgmGOr",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "toggle_preset",
 										"options": {
@@ -4204,7 +4204,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "l74B5FTWbzw-yBRdLGKI",
+							"id": "zxX1VYaGvCuC_Z9lQ9PL",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "preset_visible",
 							"options": {
@@ -4220,7 +4220,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "D59TSwGwZCgYLP28j5EO",
+									"overrideId": "GG3T3k7L-K7sdqCJ3hw6",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -4229,7 +4229,7 @@
 									}
 								},
 								{
-									"overrideId": "-EqxbkyLPg9hi_jWf-KA",
+									"overrideId": "BZ1C1kkvAJa1qvjIx_Nl",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -4246,7 +4246,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "hhmRFyzQeRlMJPsjOGvj",
+										"id": "tv9ylzK0n0xwr9wQDp1Y",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "toggle_preset",
 										"options": {
@@ -4499,7 +4499,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "l7WSXXH0rcp7nhwNaMwd",
+							"id": "2O9Slq48aqEHMJESsxDW",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "preset_visible",
 							"options": {
@@ -4515,7 +4515,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "AVYPM3amfAbR-fQo1WPR",
+									"overrideId": "q6gOCut_QCSgzR96IQDY",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -4524,7 +4524,7 @@
 									}
 								},
 								{
-									"overrideId": "dKEAoJ9jV1-F13z9eM3o",
+									"overrideId": "QNDr-Lwpd9Ic3f4SGipA",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -4541,7 +4541,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "31nH6p5c0hEsiF1OPr6l",
+										"id": "qd0Om4G_sUTT25rvspk-",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "toggle_preset",
 										"options": {
@@ -4794,7 +4794,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "5GShFXeZlQ8n3z5GpqtU",
+							"id": "BBTmNuaqs_GaxdYhGm7q",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "preset_visible",
 							"options": {
@@ -4810,7 +4810,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "o64HKIBcXjw7V6_K7OVE",
+									"overrideId": "H4fQJs9YJ3Z1d-CPzO5D",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -4819,7 +4819,7 @@
 									}
 								},
 								{
-									"overrideId": "Kjp6kBagGRT7iW1Zbh8g",
+									"overrideId": "MDQrGeVfjH4bdfz-WOyQ",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -4836,7 +4836,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "dQVm4GQeb2EmAMC-6jjZ",
+										"id": "t5-8jI6zRoPDiICcbIdM",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "toggle_preset",
 										"options": {
@@ -5089,7 +5089,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "gcVe4T-VjO-ksL1gE4wj",
+							"id": "M4gflgjwmaHy9kJ579PT",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "message_visible",
 							"options": {},
@@ -5100,7 +5100,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "J5dI5450o0NAfEonlcYA",
+									"overrideId": "oLft3NJCnZsAqFftJ8tu",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -5117,7 +5117,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "dmeKfucAQJbHINRiai6C",
+										"id": "sa1qEhJsbK7fW7BUHD-Q",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "hide_message",
 										"options": {},
@@ -5357,7 +5357,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "D1B2UdnnBt1hus7-aKDG",
+							"id": "n7d8yNr4G80O82KBHL3w",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "blackout",
 							"options": {},
@@ -5368,7 +5368,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "qjlbJDB2o90QnpgnGFNv",
+									"overrideId": "ZJ7I40pobciyUewo6XrP",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -5385,7 +5385,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "rTYax08s37B5CK0zUrgX",
+										"id": "LN2vE5VRaVbPJYXs-YF-",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "blackout",
 										"options": {
@@ -5634,7 +5634,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "wgJCVoXVeGeZXs-i2GEs",
+										"id": "I56rut0O-6VTNdgJGBjY",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "flash",
 										"options": {
@@ -5881,7 +5881,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "nWu7cG-jLOiTHcyf6VTL",
+							"id": "sdYEL-8GbsWxwc1C-mjT",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "on_air",
 							"options": {},
@@ -5892,7 +5892,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "zN6a29mhHGNnwm6l0SLK",
+									"overrideId": "rzovy--WaIt8wmfu0DcL",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -5901,7 +5901,7 @@
 									}
 								},
 								{
-									"overrideId": "SYSsrL1Tg4fFC-9PmjzG",
+									"overrideId": "24Yqin2d-Tb_MXRYGxQr",
 									"elementId": "text0",
 									"elementProperty": "color",
 									"override": {
@@ -5918,7 +5918,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "7T8NEJjDV6Rcp4sUYgZ0",
+										"id": "zmvyCRUW-7O_tL5at2en",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "on_air",
 										"options": {
@@ -6163,7 +6163,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "b5ihb9lXXcM7qwKC7pMQ",
+							"id": "JpMz0f8F2WvvYzDssfIy",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "layout_active",
 							"options": {
@@ -6179,7 +6179,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "hhveiJ6EbHOocAMCWlai",
+									"overrideId": "NIS6Fzz5AE_tYszhhub6",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -6196,7 +6196,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "7wqCQIMwTqEfQ99QMIme",
+										"id": "U2OLXo-WgE7up28AxNfe",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "layout",
 										"options": {
@@ -6441,7 +6441,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "l18z_qnbuwcoMx_8h1T4",
+							"id": "TbSEDLOWvpMIdgdCMzB2",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "layout_active",
 							"options": {
@@ -6457,7 +6457,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "7IexMswuvLYr3gOHY-yj",
+									"overrideId": "fFHyjo2vlmf9-L45ErIR",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -6474,7 +6474,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "Q-2DdMh4ZbOz9kLpOKTi",
+										"id": "s3VWz63aZeFgLsr0fDm-",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "layout",
 										"options": {
@@ -6719,7 +6719,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "J1TfLTvAjtcN-v7SJ8Tr",
+							"id": "ROAtBDuHJYTUOTF3MP8X",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "layout_active",
 							"options": {
@@ -6735,7 +6735,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "5UXpspJgmX-IUBE5k9Z8",
+									"overrideId": "lNGkRbRCFKpSbkrS5jZ-",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -6752,7 +6752,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "HIyxsLgKAaWDH69qPI4j",
+										"id": "DDByAQflUbKPnANrRkUI",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "layout",
 										"options": {
@@ -6997,7 +6997,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "KszpS1QmXSweHo_UWR9g",
+							"id": "VrbbHlhDgLGLgz-sdfMz",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "layout_active",
 							"options": {
@@ -7013,7 +7013,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "-TaAVkH4biPBEdqRHW4b",
+									"overrideId": "CDC2yY2ynLk5KT2YQj25",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -7030,7 +7030,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "AK_OokTWMjBMtUlwfITC",
+										"id": "C2hPBSIOKq5Uq65GpQNb",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "layout",
 										"options": {
@@ -7275,7 +7275,7 @@
 					"feedbacks": [
 						{
 							"type": "feedback",
-							"id": "fL_cFWP5mqUV_nPboqCs",
+							"id": "a4PFcwwu1iI0W-W-KNy0",
 							"connectionId": "lupixis_timer_connection",
 							"definitionId": "floating_open",
 							"options": {},
@@ -7286,7 +7286,7 @@
 							"upgradeIndex": -1,
 							"styleOverrides": [
 								{
-									"overrideId": "pZCzVRmEVA5KXF0gB_4N",
+									"overrideId": "73_CQWs3FlWpYJbp907H",
 									"elementId": "box0",
 									"elementProperty": "color",
 									"override": {
@@ -7303,7 +7303,7 @@
 								"down": [
 									{
 										"type": "action",
-										"id": "6zfml2Q66NSoPltMxXUz",
+										"id": "jSkaD8wdFuavy4pK3V-k",
 										"connectionId": "lupixis_timer_connection",
 										"definitionId": "floating",
 										"options": {

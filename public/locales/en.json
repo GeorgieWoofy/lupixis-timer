@@ -316,6 +316,21 @@
     "casparTag": "have this text in the file name",
     "layers": "Channel-layer"
   },
+  "companion": {
+    "title": "Stream Deck (Bitfocus Companion)",
+    "hint": "Install the Lupixis Timer module in Companion without any developer settings:",
+    "download": "Download Companion module",
+    "step2": "In Companion's web interface: Modules → Import module package → choose the downloaded file.",
+    "step3": "Connections → Add connection → search \"Lupixis\" → enter:",
+    "host": "Host",
+    "port": "Port",
+    "hostHint": "Use 127.0.0.1 instead if Companion runs on this same computer.",
+    "step4": "Optional, Companion 5.1+: a full ready-made page.",
+    "downloadPage": "Download page",
+    "step4b": "Import / Export → Import → import it into an empty page → choose your Lupixis connection.",
+    "open": "Open Companion on this computer ↗",
+    "missing": "The module files aren't in this build. Run \"npm run companion\" in the project folder."
+  },
   "csv": {
     "title": "Import from spreadsheet",
     "hint": "Paste rows copied from Excel or Google Sheets, or CSV. Columns: Title, Duration, Speaker. A header row with names like Title, Speaker, Duration, Start, Notes is also understood.",

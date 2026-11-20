@@ -185,7 +185,9 @@ Then show clips on any layer, on specific channel-layers (e.g. `1-10, 1-20`), or
 
 The module is in [`companion-module/`](companion-module) and works with Companion 4.0 and newer (checked against 5.1.3).
 
-**Easiest: install the module package.** Download `lupixis-timer-x.y.z.tgz` from the [Releases](../../releases) page. In Companion's web interface, go to **Modules → Import module package** and choose the file. Then add the connection as in step 4 below.
+**Easiest: from inside the timer.** In Lupixis Timer, open **Outputs → Stream Deck (Bitfocus Companion)**. It has a **Download Companion module** button, the host and port to enter, and a **Download page** button for the ready-made page. Both files are built into the app (`npm run companion`, done automatically by `npm run dist`). No developer settings are needed in Companion.
+
+**Or install the module package by hand.** Download `lupixis-timer-x.y.z.tgz` from the [Releases](../../releases) page. In Companion's web interface, go to **Modules → Import module package** and choose the file. Then add the connection as in step 4 below.
 
 **Ready-made page (Companion 5.1+).** Download `lupixis-timer-page.companionconfig`, then go to **Import / Export → Import**, choose the file, and import it as a single page into an empty page. When asked which connection to use, pick your Lupixis Timer connection. The page has 31 buttons on an 8×4 grid:
 
