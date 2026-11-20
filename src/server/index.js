@@ -53,10 +53,6 @@ const UPLOAD_EXT = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.
  * @returns {Promise<{engine:Engine, port:number, close:()=>Promise<void>, addresses:()=>string[]}>}
  */
 export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, announce = false }) {
-  const engine = new Engine(loadShow(dataDir));
-  const saver = createSaver(dataDir, () => engine.state);
-  const uploadDir = path.join(dataDir, 'uploads');
-  fs.mkdirSync(uploadDir, { recursive: true });
   // Saved shows: plain JSON files the user can also copy, back up or share.
   const showsDir = path.join(dataDir, 'shows');
   fs.mkdirSync(showsDir, { recursive: true });
@@ -65,6 +61,29 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
     if (!safe) throw new Error('Give the show a name');
     return path.join(showsDir, `${safe}.json`);
   };
+
+  // After a deliberate quit, start clean: the last saved show (stopped) or an empty one.
+  // After a crash or power loss (no clean-exit mark), carry on exactly where it was.
+  let saved = loadShow(dataDir);
+  if (saved?.cleanExit) saved = cleanStartState(saved, showFile);
+  const engine = new Engine(saved);
+  engine.state.cleanExit = false;
+  if (!engine.state.currentId && engine.cues().length) engine.loadCue(engine.cues()[0]); // ready, not running
+  const saver = createSaver(dataDir, () => engine.state);
+  saver.schedule();
+  const uploadDir = path.join(dataDir, 'uploads');
+  fs.mkdirSync(uploadDir, { recursive: true });
+
+  /** Save the current show to the library under `name`. Returns the stored name. */
+  function saveShowAs(name) {
+    const file = showFile(name);
+    const s = engine.state;
+    const show = { app: PKG.productName, version: 1, savedAt: new Date().toISOString(), rundown: s.rundown, messagePresets: s.messagePresets, overlay: { ...s.overlay, onAir: false }, theme: s.theme };
+    fs.writeFileSync(file, JSON.stringify(show, null, 2));
+    engine.state.show = { name: path.basename(file, '.json'), dirty: false };
+    engine.emit('change', { persist: true, action: 'saveShow' });
+    return engine.state.show.name;
+  }
   const listShows = () =>
     fs.readdirSync(showsDir)
       .filter((f) => f.endsWith('.json'))
@@ -159,13 +178,7 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
         return sendJson(res, 200, listShows());
       case 'shows/save': {
         const { name } = await readJson(req);
-        const file = showFile(name);
-        const s = engine.state;
-        const show = { app: PKG.productName, version: 1, savedAt: new Date().toISOString(), rundown: s.rundown, messagePresets: s.messagePresets, overlay: { ...s.overlay, onAir: false }, theme: s.theme };
-        fs.writeFileSync(file, JSON.stringify(show, null, 2));
-        engine.state.show = { name: path.basename(file, '.json'), dirty: false };
-        engine.emit('change', { persist: true, action: 'saveShow' });
-        return sendJson(res, 200, { ok: true, name: engine.state.show.name });
+        return sendJson(res, 200, { ok: true, name: saveShowAs(name) });
       }
       case 'shows/load': {
         const { name } = await readJson(req);
@@ -350,6 +363,14 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
     addresses,
     beacon,
     showsDir,
+    saveShowAs,
+    /** Call before a deliberate quit: the next start is clean instead of resuming. */
+    markCleanExit() {
+      engine.state.cleanExit = true;
+      saver.flush();
+      saver.schedule();
+      saver.flush();
+    },
     async close() {
       beacon?.stop();
       clipManager.stop();
@@ -364,6 +385,39 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
 }
 
 // ---- helpers -----------------------------------------------------------------
+
+/**
+ * State for a clean start: keep the computer's settings and look, reload the last saved show from its
+ * file (or start empty if it was never saved), with nothing running, no message, blackout off, off air.
+ */
+function cleanStartState(saved, showFile) {
+  const base = {
+    settings: saved.settings,
+    theme: saved.theme,
+    messagePresets: saved.messagePresets,
+    overlay: { ...(saved.overlay || {}), onAir: false },
+    message: { ...(saved.message || {}), visible: false },
+    rundown: [],
+    show: { name: '', dirty: false },
+  };
+  const name = saved.show?.name;
+  if (name) {
+    try {
+      const file = JSON.parse(fs.readFileSync(showFile(name), 'utf8'));
+      return {
+        ...base,
+        rundown: file.rundown || [],
+        messagePresets: file.messagePresets || base.messagePresets,
+        overlay: { ...(file.overlay || base.overlay), onAir: false },
+        theme: file.theme || base.theme,
+        show: { name, dirty: false },
+      };
+    } catch {
+      /* show file gone: start empty */
+    }
+  }
+  return base;
+}
 
 function send(ws, obj) {
   if (ws.readyState === 1) ws.send(JSON.stringify(obj));

@@ -344,9 +344,19 @@ const ACTIONS = {
   start() { this.startTimer(); },
   pause() { this.pauseTimer(); },
   toggle() { this.state.timer.running && this.state.timer.mode !== 'clock' ? this.pauseTimer() : this.startTimer(); },
+  /** Reset = "that didn't count": back to the original duration, and this run is not recorded. */
   reset() {
     const cue = this.currentCue();
-    if (cue) this.loadCue(cue);
+    if (!cue) return;
+    const log = this.state.log;
+    const last = log[log.length - 1];
+    if (last && last.cueId === cue.id && !last.endedAt) log.pop();
+    this.loadCue(cue);
+  },
+  /** Stop = "it's finished": records the real start/end (markers, show report), then back to the original duration, not running. */
+  stop() {
+    const cue = this.currentCue();
+    if (cue) this.loadCue(cue); // loadCue closes the running log entry first
   },
   next(p) { this.step(1, { autostart: truthy(p.autostart) }); },
   previous(p) { this.step(-1, { autostart: truthy(p.autostart) }); },

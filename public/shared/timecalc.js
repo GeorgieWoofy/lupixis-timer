@@ -201,6 +201,68 @@ export function computeSchedule(rundown) {
   return out;
 }
 
+/** Shift seconds-of-day `x` by whole days so it lies within 12 h of `ref` (handles midnight). */
+export function nearDay(x, ref) {
+  if (x == null || ref == null) return x;
+  while (x - ref > 43200) x -= 86400;
+  while (x - ref < -43200) x += 86400;
+  return x;
+}
+
+/**
+ * What is really happening vs the plan, in seconds since midnight.
+ *  - Cues that have run use their real start/end (from the show report).
+ *  - The current cue's end is now + time left.
+ *  - Later cues without a fixed start ripple on from the previous expected end (never earlier than now).
+ *    Cues with their own start time keep it.
+ * @param {object[]} rundown
+ * @param {{start:number|null,end:number|null,explicit:boolean}[]} sched  planned times (computeSchedule)
+ * @param {object[]} log      show report entries {cueId, startedAt, endedAt}
+ * @param {string|null} currentId
+ * @param {object} c          computeTimer() of the current timer
+ * @param {number} nowSod     now, seconds since midnight
+ * @param {(ms:number)=>number} toSod  epoch ms -> seconds since midnight
+ * @returns {({start:number|null,end:number|null,startActual:boolean,endActual:boolean,state:string}|null)[]}
+ */
+export function projectSchedule(rundown, sched, log, currentId, c, nowSod, toSod) {
+  const lastLog = new Map();
+  for (const e of log || []) lastLog.set(e.cueId, e);
+  const curIdx = rundown.findIndex((x) => x.id === currentId);
+  const out = [];
+  let prevEnd = null;
+  rundown.forEach((cue, i) => {
+    if (cue.kind && cue.kind !== 'cue') return out.push(null);
+    const plan = sched[i] || {};
+    const ref = plan.start ?? prevEnd ?? nowSod;
+    const log = lastLog.get(cue.id);
+    const isCur = i === curIdx;
+    const dur = Math.round((cue.duration || 0) / 1000);
+    let r;
+    if ((i < curIdx || (isCur && !c.started)) && log?.endedAt) {
+      // Finished (or stopped): real times.
+      const start = nearDay(toSod(log.startedAt), ref);
+      r = { start, end: nearDay(toSod(log.endedAt), start), startActual: true, endActual: true, state: 'done' };
+    } else if (i < curIdx) {
+      r = { start: null, end: null, startActual: false, endActual: false, state: 'skipped' }; // jumped over
+    } else if (isCur && c.started) {
+      const start = log && !log.endedAt ? nearDay(toSod(log.startedAt), ref) : nowSod - Math.max(0, c.elapsed) / 1000;
+      const end = cue.mode === 'clock' ? plan.end : nowSod + Math.max(0, c.remaining) / 1000;
+      r = { start, end, startActual: true, endActual: false, state: 'current' };
+    } else {
+      // Not started yet (the loaded cue, or later ones).
+      let start = plan.explicit ? plan.start : prevEnd ?? plan.start;
+      // Nothing can start in the past. (A later cue with its own start time keeps it: it will start itself then.)
+      if ((!plan.explicit || isCur) && start != null) start = Math.max(start, nowSod);
+      if (isCur && start == null) start = nowSod;
+      const end = cue.mode === 'clock' ? plan.end : start != null ? start + dur : null;
+      r = { start, end, startActual: false, endActual: false, state: isCur ? 'ready' : 'upcoming' };
+    }
+    if (r.end != null) prevEnd = r.end;
+    out.push(r);
+  });
+  return out;
+}
+
 /** Epoch ms of today's occurrence of a "HH:MM[:SS]" time (local time), or null. */
 export function todayAt(str, now) {
   const secs = parseClockTime(str);

@@ -14,6 +14,7 @@ console.log(`  Controller: http://localhost:${srv.port}/controller`);
 for (const ip of srv.addresses()) console.log(`  On the network: http://${ip}:${srv.port}/controller`);
 
 const shutdown = async () => {
+  srv.markCleanExit(); // Ctrl+C = deliberate stop: next start is clean
   await srv.close();
   process.exit(0);
 };

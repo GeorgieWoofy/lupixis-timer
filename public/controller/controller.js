@@ -1,7 +1,7 @@
 // Controller UI. Every button just sends an action to the server; the server broadcasts the new state
 // and `render()` redraws from it. That way several controllers (laptop + phone) always agree.
 import { Connection, loadLanguage, applyI18n, t, h, setVal, formatClock } from '/shared/client.js';
-import { timerText, parseDuration, formatDurationInput, parseClockTime, formatTimeOfDay, formatDelta, computeSchedule, todayAt, formatSeconds, MODES } from '/shared/timecalc.js';
+import { timerText, parseDuration, formatDurationInput, parseClockTime, formatTimeOfDay, formatDelta, computeSchedule, projectSchedule, nearDay, todayAt, formatSeconds, MODES } from '/shared/timecalc.js';
 
 const $ = (id) => document.getElementById(id);
 const conn = new Connection({ role: 'controller' });
@@ -99,6 +99,7 @@ $('btnToggle').onclick = () => quiet(act('toggle'));
 $('btnPrev').onclick = () => quiet(act('previous'));
 $('btnNext').onclick = () => quiet(act('next'));
 $('btnReset').onclick = () => quiet(act('reset'));
+$('btnStop').onclick = () => quiet(act('stop'));
 document.querySelectorAll('[data-add]').forEach((b) => (b.onclick = () => quiet(act('addTime', { seconds: Number(b.dataset.add) }))));
 $('setTimeForm').onsubmit = (e) => {
   e.preventDefault();
@@ -396,9 +397,8 @@ function renderRundown(s) {
     setVal(f.speaker, cue.speaker);
     setVal(f.mode, cue.mode);
     setVal(f.mode2, cue.mode);
-    // Start: own time in the field; otherwise the planned (chained) start as a faint placeholder.
+    // Start: own time in the field; otherwise the planned/expected start as a faint placeholder (see renderProjection).
     setVal(f.start, showClock(cue.start));
-    f.start.placeholder = !cue.start && sc.start != null ? formatTimeOfDay(sc.start, h24()) : '--:--';
     f.start.parentElement.classList.toggle('scheduled', !!cue.start && s.settings.autoStartScheduled);
     // Duration: editable, except for "until time" cues where it follows from start -> target.
     const isClock = cue.mode === 'clock';
@@ -406,27 +406,14 @@ function renderRundown(s) {
     setVal(f.time, isClock ? (sc.start != null && sc.end != null ? formatDurationInput((sc.end - sc.start) * 1000) : '—') : formatDurationInput(cue.duration));
     f.time.placeholder = 'M:SS';
     f.time.title = isClock ? t('rundown.clockDurationHint') : t('rundown.durationHint');
-    // End: computed from start + duration (or the target time).
-    setVal(f.end, isClock ? showClock(cue.target) : formatTimeOfDay(sc.end, h24()));
-    f.end.placeholder = '--:--';
+    // End values and the early/late markers are drawn by renderProjection().
+
     setVal(f.auto, cue.autoAdvance);
     setVal(f.auto2, cue.autoAdvance);
     setVal(f.flash, cue.flashOvertime);
     setVal(f.warning, formatDurationInput(cue.warning));
     setVal(f.critical, formatDurationInput(cue.critical));
     setVal(f.notes, cue.notes);
-
-    // Early / late markers from what really happened (show report).
-    const log = lastLog.get(cue.id);
-    let startDelta = null;
-    if (log && sc.start != null) {
-      startDelta = secondsOfDay(log.startedAt) - (sc.start % 86400);
-      if (startDelta > 43200) startDelta -= 86400;
-      if (startDelta < -43200) startDelta += 86400;
-    }
-    setDelta(f.startDelta, startDelta);
-    r.liveEnd = cue.id === s.currentId && !log?.endedAt; // the current cue's end marker updates every frame
-    setDelta(f.endDelta, !r.liveEnd && log?.actual != null && !isClock ? (log.actual - cue.duration) / 1000 : null);
 
     const ci = no - 1;
     r.el.classList.toggle('current', ci === curCue);
@@ -452,16 +439,78 @@ function renderRundown(s) {
   if (want.length !== have.length || want.some((el, i) => have[i] !== el)) want.forEach((el) => list.append(el));
   $('emptyRundown').hidden = s.rundown.length > 0;
   const total = cueList.filter((c) => c.mode !== 'clock').reduce((a, c) => a + c.duration, 0);
+  renderProjection();
   setText($('rundownTotal'), cueList.length ? t(cueList.length === 1 ? 'rundown.totalOne' : 'rundown.total', { n: cueList.length, time: formatDurationInput(total) }) : '');
 }
 
-/** Per frame: the current cue's live overrun under End (red "+0:12" once it passes zero). */
-function renderLiveEnd(c) {
-  const r = rows.get(S.currentId);
-  if (!r || r.kind !== 'cue' || !r.liveEnd) return;
-  const over = c.loaded && c.mode !== 'clock' && c.mode !== 'countup' && c.remaining < 0 ? -c.remaining / 1000 : null;
-  const countupOver = c.mode === 'countup' && c.duration > 0 && c.elapsed > c.duration ? (c.elapsed - c.duration) / 1000 : null;
-  setDelta(r.f.endDelta, over ?? countupOver);
+/** The end marker only appears once a cue has finished (no live counting while it runs). */
+function renderLiveEnd() {}
+
+/**
+ * Start / End columns: planned times, expected times in orange when they've moved (late start, overrun,
+ * rippling on to later cues), real times once a cue has finished, and the early/late markers.
+ * Runs on every state change and twice a second (expected times move with the clock).
+ */
+let lastProjection = 0;
+function renderProjection() {
+  if (!S) return;
+  lastProjection = Date.now();
+  const sched = computeSchedule(S.rundown);
+  const now = conn.now();
+  const nowSod = secondsOfDay(now) + (now % 1000) / 1000;
+  const proj = projectSchedule(S.rundown, sched, S.log, S.currentId, conn.timer(), nowSod, secondsOfDay);
+  const lastLog = new Map();
+  for (const e of S.log || []) lastLog.set(e.cueId, e);
+  const T = (x) => formatTimeOfDay(Math.round(x), h24());
+  const moved = (a, b) => a != null && b != null && Math.abs(a - b) >= 5;
+
+  S.rundown.forEach((cue, i) => {
+    const r = rows.get(cue.id);
+    if (!r || r.kind !== 'cue') return;
+    const f = r.f;
+    const plan = sched[i];
+    const p = proj[i];
+
+    // ---- Start ----
+    if (p?.startActual) {
+      if (!cue.start) f.start.placeholder = plan.start != null ? T(plan.start) : T(p.start);
+      f.start.classList.remove('projected');
+      setDelta(f.startDelta, plan.start != null ? p.start - nearDay(plan.start, p.start) : null);
+    } else {
+      setDelta(f.startDelta, null);
+      if (!cue.start) f.start.placeholder = p?.start != null ? T(p.start) : plan.start != null ? T(plan.start) : '--:--';
+      f.start.classList.toggle('projected', !cue.start && moved(p?.start, plan.start));
+    }
+
+    // ---- End ----
+    let text;
+    let orange = false;
+    let placeholder = '--:--';
+    if (p?.endActual) {
+      text = T(p.end);
+      const planEnd = plan.end != null ? nearDay(plan.end, p.end) : null;
+      orange = moved(p.end, planEnd);
+      const log = lastLog.get(cue.id);
+      // Compare with the planned end time; without a plan, compare how long it ran with its duration.
+      const d = planEnd != null ? p.end - planEnd : log?.actual != null && cue.mode !== 'clock' ? (log.actual - cue.duration) / 1000 : null;
+      setDelta(f.endDelta, d);
+    } else {
+      setDelta(f.endDelta, null);
+      if (moved(p?.end, plan.end)) {
+        text = T(p.end);
+        orange = true;
+      } else if (plan.end != null) {
+        text = T(plan.end);
+      } else {
+        text = '';
+        if (p?.end != null) placeholder = T(p.end);
+      }
+    }
+    setVal(f.end, text);
+    f.end.placeholder = placeholder;
+    f.end.classList.toggle('projected', orange);
+    f.end.title = orange && !p?.endActual ? t('rundown.projectedHint') : t('rundown.endHint');
+  });
 }
 
 // ---- saved shows library ----
@@ -1162,7 +1211,8 @@ function render(s) {
   setText($('nowNext'), next ? `${t('viewer.next')}: ${next.title || t('viewer.untitled')}` : '');
   $('btnBlackout').classList.toggle('danger-on', s.blackout);
   const cl = s.clients || {};
-  setText($('clientsCount'), t('top.clients', { n: (cl.viewer || 0) + (cl.overlay || 0) + (cl.floating || 0) }));
+  const screens = (cl.viewer || 0) + (cl.overlay || 0) + (cl.floating || 0);
+  setText($('clientsCount'), t(screens === 1 ? 'top.clientsOne' : 'top.clients', { n: screens }));
   renderRundown(s);
   renderShowChip(s);
   renderMessage(s);
@@ -1196,7 +1246,7 @@ function frame() {
     $('bigProgress').style.width = `${(c.progress * 100).toFixed(2)}%`;
     const r = rows.get(S.currentId);
     if (r?.f.progress) r.f.progress.style.width = `${(c.progress * 100).toFixed(2)}%`;
-    renderLiveEnd(c);
+    if (Date.now() - lastProjection > 500) renderProjection();
 
     const stateKey = !c.loaded ? 'idle' : c.running ? 'running' : c.started ? 'paused' : 'ready';
     const pill = $('nowState');
@@ -1206,6 +1256,7 @@ function frame() {
     const isClock = c.mode === 'clock';
     btn.classList.toggle('pause', c.running && !isClock);
     btn.disabled = isClock;
+    $('btnStop').disabled = !c.started || isClock; // nothing to stop yet
     setText($('toggleLabel'), isClock ? t('transport.live') : c.running ? t('transport.pause') : c.started ? t('transport.resume') : t('transport.start'));
 
     let ends = '';

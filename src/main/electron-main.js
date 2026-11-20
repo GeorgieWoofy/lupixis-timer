@@ -111,6 +111,23 @@ function createController() {
 
   controllerWin.on('close', (e) => {
     if (quitting) return;
+    e.preventDefault();
+    if (!confirmQuit()) return;
+    writePrefs({ controller: { ...controllerWin.getNormalBounds(), maximized: controllerWin.isMaximized() }, reconnect: remote ? { url: remote.url, name: remote.name } : null });
+    quitting = true;
+    app.quit();
+  });
+}
+
+/**
+ * Ask before quitting. As the main timer with unsaved changes, offer to save them first.
+ * (Following another laptop's timer: nothing here is ours to save or stop.)
+ * @returns {boolean} true = go ahead and quit
+ */
+function confirmQuit() {
+  const st = srv.engine.state;
+  const unsaved = !remote && st.show?.dirty && st.rundown.length > 0;
+  if (!unsaved) {
     const choice = dialog.showMessageBoxSync(controllerWin, {
       type: 'question',
       buttons: ['Quit', 'Cancel'],
@@ -118,20 +135,49 @@ function createController() {
       cancelId: 1,
       title: 'Quit Lupixis Timer?',
       message: 'Quit Lupixis Timer?',
-      detail: 'All timer outputs, the floating window and browser/OBS connections will stop.',
+      detail: remote
+        ? `This laptop stops following ${remote.name}. The timer on that computer keeps running.`
+        : 'The timer stops, and so do the outputs, the floating window and browser/OBS connections. Next time it opens with your last saved show.',
     });
-    if (choice !== 0) return e.preventDefault();
-    writePrefs({ controller: { ...controllerWin.getNormalBounds(), maximized: controllerWin.isMaximized() }, reconnect: remote ? { url: remote.url, name: remote.name } : null });
-    quitting = true;
-    app.quit();
+    return choice === 0;
+  }
+  const name = st.show?.name;
+  const choice = dialog.showMessageBoxSync(controllerWin, {
+    type: 'warning',
+    buttons: ['Save and quit', 'Quit without saving', 'Cancel'],
+    defaultId: 0,
+    cancelId: 2,
+    title: 'Unsaved changes',
+    message: name ? `Save the changes to "${name}" before quitting?` : 'Save this show before quitting?',
+    detail: 'The timer stops when you quit. Next time it opens with the last saved version of the show.',
   });
+  if (choice === 2) return false;
+  if (choice === 1) return true;
+  try {
+    if (name) {
+      srv.saveShowAs(name);
+      return true;
+    }
+    const file = dialog.showSaveDialogSync(controllerWin, {
+      title: 'Save show',
+      defaultPath: path.join(srv.showsDir, 'My show.json'),
+      filters: [{ name: 'Lupixis Timer show', extensions: ['json'] }],
+    });
+    if (!file) return false; // cancelled: stay open
+    srv.saveShowAs(path.basename(file, '.json'));
+    return true;
+  } catch (err) {
+    dialog.showErrorBox('Could not save the show', err.message);
+    return false;
+  }
 }
 
 // ---- floating always-on-top timer ----
 function openFloating() {
   if (floatingWin && !floatingWin.isDestroyed()) {
-    if (floatingWin.isMinimized()) floatingWin.restore();
-    return floatingWin.show();
+    // showInactive also restores a minimised window, without taking focus away from PowerPoint.
+    floatingWin.showInactive();
+    return updateHost();
   }
   const saved = readPrefs().floating;
   const visible = saved && screen.getAllDisplays().some((d) => rectInside(saved, d.workArea));
@@ -146,15 +192,23 @@ function openFloating() {
     alwaysOnTop: true,
     resizable: true,
     maximizable: false,
-    minimizable: true, // the control bar has a minimise button; restore from the taskbar
+    minimizable: false,
+    // Never takes keyboard focus, even when its buttons are clicked: PowerPoint's presenter view must keep focus
+    // for presentation clickers. (On Windows this also removes it from the taskbar, so 'minimise' hides it;
+    // Ctrl+Alt+T or the controller's Floating timer button brings it back.)
+    focusable: false,
     fullscreenable: false,
-    skipTaskbar: false,
+    skipTaskbar: true,
     hasShadow: true,
     backgroundColor: '#000000',
     title: 'Lupixis Timer – floating timer',
     icon: winIcon(),
     webPreferences: { preload: PRELOAD },
+    // Never grab keyboard focus when appearing: PowerPoint's presenter view must stay focused
+    // for presentation clickers to keep working.
+    show: false,
   });
+  floatingWin.once('ready-to-show', () => floatingWin?.showInactive());
   // 'screen-saver' is the highest level: stays above PowerPoint's fullscreen slideshow/presenter view.
   floatingWin.setAlwaysOnTop(true, 'screen-saver');
   floatingWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); // macOS spaces
@@ -170,6 +224,8 @@ function openFloating() {
   });
   updateHost();
 }
+
+const floatingVisible = () => !!(floatingWin && !floatingWin.isDestroyed() && floatingWin.isVisible());
 
 function closeFloating() {
   if (floatingWin && !floatingWin.isDestroyed()) floatingWin.close();
@@ -207,7 +263,8 @@ ipcMain.on('floating:drag-start', () => {
 ipcMain.on('floating:drag-end', stopDrag);
 ipcMain.on('floating:minimize', () => {
   stopDrag();
-  floatingWin?.minimize();
+  floatingWin?.hide(); // hidden, not closed: Ctrl+Alt+T / controller shows it again
+  updateHost();
 });
 ipcMain.on('floating:close', () => closeFloating());
 // Esc pressed inside a fullscreen output page closes that output (only output windows, never the controller).
@@ -219,7 +276,7 @@ ipcMain.on('output:close', (e) => {
 // Some fullscreen apps (PowerPoint included) grab the top spot when they start a slideshow.
 // Re-asserting every couple of seconds keeps the floating timer visible without stealing focus.
 setInterval(() => {
-  if (!floatingWin || floatingWin.isDestroyed() || floatingWin.isMinimized() || drag) return;
+  if (!floatingVisible() || drag) return;
   if (settings().floatingKeepOnTop === false) return;
   floatingWin.setAlwaysOnTop(true, 'screen-saver');
   floatingWin.moveTop();
@@ -244,7 +301,9 @@ function openOutput(displayId, view) {
     icon: winIcon(),
     autoHideMenuBar: true,
     webPreferences: { preload: PRELOAD },
+    show: false, // appear without taking focus (screen takeover can happen mid-presentation)
   });
+  win.once('ready-to-show', () => win.showInactive());
   win.setMenu(null);
   win.view = view;
   win.loadURL(outputUrl(view));
@@ -331,7 +390,7 @@ function desktopInfo() {
     mode: remote ? 'remote' : 'main',
     remote: remote ? { url: remote.url, name: remote.name, ok: remote.ok } : null,
     discovered: discovered.filter((d) => d.id !== srv?.beacon?.id),
-    floatingOpen: !!(floatingWin && !floatingWin.isDestroyed()),
+    floatingOpen: floatingVisible(),
     displays: screen.getAllDisplays().map((d) => ({ id: String(d.id), width: d.size.width, height: d.size.height, primary: d.id === primary, label: d.label || '' })),
     outputs: [...outputs.keys()].map((k) => {
       const [view, displayId] = k.split('@');
@@ -389,7 +448,7 @@ function handleCommand(p) {
   switch (p.command) {
     case 'openFloating': return openFloating();
     case 'closeFloating': return closeFloating();
-    case 'toggleFloating': return floatingWin && !floatingWin.isDestroyed() ? closeFloating() : openFloating();
+    case 'toggleFloating': return floatingVisible() ? closeFloating() : openFloating();
     case 'openOutput': return openOutput(p.displayId, p.view === 'overlay' ? 'overlay' : 'viewer');
     case 'closeOutput': return closeOutput(p.displayId, p.view === 'overlay' ? 'overlay' : 'viewer');
     case 'closeAllOutputs': return [...outputs.values()].forEach((w) => w.close());
@@ -508,6 +567,7 @@ app.whenReady().then(async () => {
 });
 
 app.on('will-quit', async () => {
+  srv?.markCleanExit(); // a deliberate quit: next start is clean (only a crash resumes a running timer)
   globalShortcut.unregisterAll();
   listener?.stop();
   await srv?.close();

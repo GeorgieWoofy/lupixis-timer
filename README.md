@@ -19,6 +19,7 @@
 - [Features](#features)
 - [Install](#install)
 - [Quick start](#quick-start)
+- [Quitting and reopening](#quitting-and-reopening)
 - [Production setups](#production-setups)
 - [The rundown](#the-rundown)
 - [Confidence monitor & floating timer](#confidence-monitor--floating-timer)
@@ -85,11 +86,15 @@ On first start, Windows Firewall asks about network access. Allow it on **privat
 
 ---
 
+## Quitting and reopening
+
+Quitting stops the timer. If the show has unsaved changes, you're asked whether to save them. Next time the app opens with the last saved show, ready but not running (or empty if it was never saved). Only after a crash or power loss does it resume exactly where it was, running timer included. A laptop that is *following* another timer never stops the main timer when it quits.
+
 ## Production setups
 
 | Setup | How |
 |---|---|
-| **One laptop, presenter view + confidence monitor** | Floating timer over PowerPoint's presenter view. Global hotkeys keep working while PowerPoint has focus. |
+| **One laptop, presenter view + confidence monitor** | Floating timer over PowerPoint's presenter view. The floating timer never takes focus, even when you click its buttons, so presentation clickers keep working. Its hide button (or Ctrl+Alt+T) hides it, and the same hotkey brings it back. Global hotkeys work while PowerPoint has focus. |
 | **Dedicated timer laptop / all-in-one PC** | Under **Outputs → When a second screen is connected, fill it with**, choose *Confidence monitor*. Every time the app starts or the HDMI cable goes in, the second screen becomes the timer. On a touchscreen, use touch mode and **⛶** (or F11) for a fullscreen controller. |
 | **Several laptops** | Run the timer on one machine. On the others, go to **Outputs → This computer → Timers on the network → Connect**. Each laptop gets its own floating window and fullscreen outputs, and its controls and hotkeys control the main timer. |
 | **Broadcast (OBS / vMix)** | Add a browser source at 1920×1080 with `http://<timer-ip>:4848/overlay`. Use the **On air** button or Companion to bring it in and out. |

@@ -41,6 +41,7 @@ function getPresets(self) {
 	p.start = button('Timer', 'Start', 'START', [['start']], [fb('running', { bgcolor: GREEN })])
 	p.pause = button('Timer', 'Pause', 'PAUSE', [['pause']], [fb('paused', { bgcolor: YELLOW, color: BLACK })])
 	p.reset = button('Timer', 'Reset', 'RESET', [['reset']])
+	p.stop = button('Timer', 'Stop', 'STOP', [['stop']], [fb('running', { bgcolor: RED, color: WHITE })])
 	p.previous = button('Timer', 'Previous cue', '⏮\\nPREV', [['previous']])
 	p.next = button('Timer', 'Next cue', `NEXT\\n${v('next_title')}`, [['next']])
 	p.start_next = button('Timer', 'Next and start', `GO NEXT\\n${v('next_title')}`, [['start_next']], [], { bgcolor: combineRgb(0, 90, 40) })

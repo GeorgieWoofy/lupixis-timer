@@ -125,7 +125,7 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .phase-critical .progress > div, .phase-overtime .progress > div { background: var(--red); }
 .now-sub { display: flex; justify-content: space-between; gap: 8px; min-height: 16px; }
 .now-sub span:last-child { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.transport { display: grid; grid-template-columns: 48px 1fr 48px 48px; gap: 8px; }
+.transport { display: grid; grid-template-columns: 44px 1fr 44px 44px 44px; gap: 6px; }
 .transport .btn { min-height: 54px; }
 .btn.go { font-size: 18px; }
 .btn.go.pause { background: var(--yellow); border-color: var(--yellow); color: #000; }
@@ -291,7 +291,7 @@ body.touch { font-size: 15px; }
 body.touch .btn { min-height: 46px; padding: 0 16px; border-radius: 11px; }
 body.touch .btn.small { min-height: 40px; padding: 0 14px; font-size: 13px; }
 body.touch .btn.icon { width: 60px; }
-body.touch .transport { grid-template-columns: 60px 1fr 60px 60px; gap: 8px; }
+body.touch .transport { grid-template-columns: 54px 1fr 54px 54px 54px; gap: 6px; }
 body.touch .transport .btn { min-height: 76px; }
 body.touch .btn.go { font-size: 22px; }
 body.touch .adjust { gap: 8px; }
@@ -402,3 +402,10 @@ body.touch .btn.icon-sm { width: 40px; min-height: 40px; }
 .show-item.current { border-color: var(--blue); }
 .show-meta { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .show-meta b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.btn.icon.stop { color: var(--red); }
+.btn.icon.stop:disabled { opacity: 0.35; cursor: default; }
+
+/* Expected times that differ from the plan (late start, overrun, rippling on). */
+.cue input.projected { color: #ff9f2e !important; font-weight: 600; }
+.cue input.projected::placeholder { color: #ff9f2e; opacity: 0.9; }

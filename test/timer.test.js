@@ -167,3 +167,73 @@ test('show library: save, list, load and the unsaved marker', async () => {
     await srv.close();
   }
 });
+
+test('Stop records the run and resets; Reset discards the run', () => {
+  const e = new Engine();
+  try {
+    e.dispatch('replaceRundown', { rundown: [{ title: 'A', duration: 60000 }] });
+    e.dispatch('start');
+    e.state.timer.startedAt -= 5000; // pretend it ran 5 s
+    e.dispatch('stop');
+    assert.equal(e.state.log.length, 1);
+    assert.ok(e.state.log[0].endedAt && e.state.log[0].actual >= 4900);
+    assert.equal(e.state.timer.running, false);
+    assert.equal(e.state.timer.duration, 60000);
+    e.dispatch('start');
+    e.dispatch('reset');
+    assert.equal(e.state.log.length, 1, 'reset does not record');
+  } finally {
+    e.destroy();
+  }
+});
+
+test('projected times: late start ripples on, fixed start times stay', async () => {
+  const { projectSchedule } = await import('../public/shared/timecalc.js');
+  const rundown = [
+    { id: 'a', title: 'A', duration: 60000, start: '10:00' },
+    { id: 'b', title: 'B', duration: 300000 },
+    { id: 'c', title: 'C', duration: 120000 },
+    { id: 'd', title: 'D', duration: 60000, start: '11:00' },
+  ];
+  const sched = computeSchedule(rundown);
+  const at = (h, m, s = 0) => new Date(2026, 10, 20, h, m, s).getTime();
+  const sod = (ms) => { const d = new Date(ms); return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds(); };
+  // A ran 10:00-10:01; B started 2:36 late (10:03:36) and has 4:00 left at 10:04:36.
+  const log = [{ cueId: 'a', startedAt: at(10, 0), endedAt: at(10, 1) }, { cueId: 'b', startedAt: at(10, 3, 36), endedAt: null }];
+  const c = { started: true, running: true, elapsed: 60000, remaining: 240000 };
+  const p = projectSchedule(rundown, sched, log, 'b', c, sod(at(10, 4, 36)), sod);
+  assert.equal(p[0].state, 'done');
+  assert.equal(formatTimeOfDay(p[1].start), '10:03:36');
+  assert.equal(formatTimeOfDay(p[1].end), '10:08:36'); // planned 10:06
+  assert.equal(formatTimeOfDay(p[2].start), '10:08:36'); // ripples on
+  assert.equal(formatTimeOfDay(p[3].start), '11:00'); // own start time kept
+});
+
+test('clean start after a deliberate quit: last saved show, nothing running', async () => {
+  const os = await import('node:os');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { startServer } = await import('../src/server/index.js');
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lupixis-clean-'));
+  let srv = await startServer({ port: 4971, dataDir });
+  srv.engine.dispatch('replaceRundown', { rundown: [{ title: 'Saved cue', duration: 60000 }] });
+  srv.saveShowAs('Show A');
+  srv.engine.dispatch('addCue', { cue: { title: 'Unsaved extra' } });
+  srv.engine.dispatch('start');
+  srv.markCleanExit();
+  await srv.close();
+  srv = await startServer({ port: 4971, dataDir });
+  try {
+    assert.deepEqual(srv.engine.state.rundown.map((c) => c.title), ['Saved cue']);
+    assert.equal(srv.engine.state.timer.running, false);
+    assert.equal(srv.engine.state.show.name, 'Show A');
+  } finally {
+    await srv.close(); // no clean-exit mark = like a crash
+  }
+  srv = await startServer({ port: 4971, dataDir });
+  try {
+    assert.equal(srv.engine.state.show.name, 'Show A', 'crash recovery keeps the state');
+  } finally {
+    await srv.close();
+  }
+});
