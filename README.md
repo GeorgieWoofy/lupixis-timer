@@ -183,12 +183,15 @@ Then show clips on any layer, on specific channel-layers (e.g. `1-10, 1-20`), or
 
 ## Bitfocus Companion / Stream Deck
 
-The module is in [`companion-module/`](companion-module) and works with Companion 4.0 and newer.
+The module is in [`companion-module/`](companion-module) and works with Companion 4.0 and newer (checked against 5.1.3). Companion loads it as a "developer module" from a folder on disk:
 
-1. `cd companion-module`, then `npm install`.
-2. In Companion, go to **Settings → Developer → Developer modules path** and choose the folder that contains `companion-module` (this repository).
-3. Add a **Lupixis Timer** connection. Use host `127.0.0.1` (same computer) or the timer's IP, port `4848`.
-4. Drag buttons from the **Presets** tab.
+1. **Install the module's dependencies once.** In a terminal, inside this repository: `cd companion-module`, then `npm install`.
+2. **Point Companion at the folder.** This setting is in Companion's small **launcher window** (the one with the *Launch GUI* button that opens when Companion starts), not in the web interface's Settings page. Open the launcher's **settings** (the cog), go to the **Developer** section, tick **Enable Developer Modules**, and set **Developer Modules Path** to this repository's folder, the one that *contains* `companion-module`, e.g. `D:\_PROJECTS\Lupixis\Timer`. Companion checks each folder directly inside it and ignores everything that isn't a module.
+3. **Restart Companion** if the module doesn't appear straight away.
+4. In the web interface, go to **Connections → Add connection**, search for **Lupixis**, and add **Lupixis Media: Lupixis Timer**. Use host `127.0.0.1` (Companion on the same computer as the timer) or the timer computer's IP, port `4848`.
+5. Drag buttons from the connection's **Presets**.
+
+When you update this repository (`git pull`), run `npm install` in `companion-module` again, then restart Companion.
 
 What the module provides:
 
