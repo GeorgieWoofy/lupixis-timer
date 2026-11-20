@@ -1,6 +1,6 @@
 {
   "name": "lupixis-timer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Bitfocus Companion module for Lupixis Timer",
   "main": "main.js",
   "license": "MIT",
@@ -10,5 +10,17 @@
   "dependencies": {
     "@companion-module/base": "~1.12.1",
     "ws": "^8.23.0"
+  },
+  "devDependencies": {
+    "@companion-module/tools": "^2.3.0"
+  },
+  "scripts": {
+    "package": "companion-module-build",
+    "check": "companion-module-check",
+    "page": "node scripts/make-page.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitfocus/companion-module-lupixis-timer.git"
   }
 }

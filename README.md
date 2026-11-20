@@ -183,7 +183,22 @@ Then show clips on any layer, on specific channel-layers (e.g. `1-10, 1-20`), or
 
 ## Bitfocus Companion / Stream Deck
 
-The module is in [`companion-module/`](companion-module) and works with Companion 4.0 and newer (checked against 5.1.3). Companion loads it as a "developer module" from a folder on disk:
+The module is in [`companion-module/`](companion-module) and works with Companion 4.0 and newer (checked against 5.1.3).
+
+**Easiest: install the module package.** Download `lupixis-timer-x.y.z.tgz` from the [Releases](../../releases) page. In Companion's web interface, go to **Modules → Import module package** and choose the file. Then add the connection as in step 4 below.
+
+**Ready-made page (Companion 5.1+).** Download `lupixis-timer-page.companionconfig`, then go to **Import / Export → Import**, choose the file, and import it as a single page into an empty page. When asked which connection to use, pick your Lupixis Timer connection. The page has 31 buttons on an 8×4 grid:
+
+| Row | Buttons |
+|---|---|
+| 1 | Time (press = start/pause), Start/Pause, Stop, Reset, Prev, Next, Go next |
+| 2 | −1m, +1m, −10s, +10s, −5m, +5m, cue x/y + title |
+| 3 | Quick messages, Hide message, Blackout, Flash |
+| 4 | On Air, the four broadcast layouts, Floating timer, Clip timer |
+
+Column 1 holds the page up / page number / page down buttons. The essentials sit in the top-left 5×3 block, so a 15-key Stream Deck shows them too. Regenerate the page with `npm run page` in `companion-module`.
+
+**For developers: load from the source folder** ("developer module"):
 
 1. **Install the module's dependencies once.** In a terminal, inside this repository: `cd companion-module`, then `npm install`.
 2. **Point Companion at the folder.** This setting is in Companion's small **launcher window** (the one with the *Launch GUI* button that opens when Companion starts), not in the web interface's Settings page. Open the launcher's **settings** (the cog), go to the **Developer** section, tick **Enable Developer Modules**, and set **Developer Modules Path** to this repository's folder, the one that *contains* `companion-module`, e.g. `D:\_PROJECTS\Lupixis\Timer`. Companion checks each folder directly inside it and ignores everything that isn't a module.

@@ -6,8 +6,8 @@
 	"description": "Control Lupixis Timer: start/pause, cues, time adjustments, speaker messages and broadcast graphics.",
 	"version": "0.2.0",
 	"license": "MIT",
-	"repository": "git+https://example.invalid/lupixis-timer.git",
-	"bugs": "https://example.invalid/lupixis-timer/issues",
+	"repository": "git+https://github.com/bitfocus/companion-module-lupixis-timer.git",
+	"bugs": "https://github.com/bitfocus/companion-module-lupixis-timer/issues",
 	"maintainers": [
 		{
 			"name": "Lupixis Media"
