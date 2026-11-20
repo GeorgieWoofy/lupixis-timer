@@ -114,11 +114,17 @@ export function formatDurationInput(ms) {
   return formatSeconds(Math.round((ms || 0) / 1000), { padMinutes: false });
 }
 
-/** Parse "HH:MM" or "HH:MM:SS" (24 h) into seconds since midnight, or null. */
+/** Parse "HH:MM", "HH:MM:SS" (24 h) or "2:30 PM" / "2:30pm" into seconds since midnight, or null. */
 export function parseClockTime(str) {
-  const m = String(str || '').trim().match(/^(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?$/);
+  const m = String(str || '').trim().match(/^(\d{1,2})[:.](\d{2})(?:[:.](\d{2}))?\s*([ap]\.?m?\.?)?$/i);
   if (!m) return null;
-  const h = +m[1], min = +m[2], s = +(m[3] || 0);
+  let h = +m[1];
+  const min = +m[2], s = +(m[3] || 0);
+  const ampm = m[4]?.[0].toLowerCase();
+  if (ampm) {
+    if (h < 1 || h > 12) return null;
+    h = (h % 12) + (ampm === 'p' ? 12 : 0);
+  }
   if (h > 23 || min > 59 || s > 59) return null;
   return h * 3600 + min * 60 + s;
 }
@@ -138,13 +144,24 @@ export function nextClockTime(str, now) {
   return d.getTime();
 }
 
-/** Seconds since midnight -> "HH:MM", or "HH:MM:SS" when seconds aren't zero. Wraps past midnight. */
-export function formatTimeOfDay(secs) {
+/**
+ * Seconds since midnight -> "HH:MM" (or "HH:MM:SS" when seconds aren't zero). Wraps past midnight.
+ * With h24 = false: "2:30 PM".
+ */
+export function formatTimeOfDay(secs, h24 = true) {
   if (secs == null || !Number.isFinite(secs)) return '';
   const s = ((Math.round(secs) % 86400) + 86400) % 86400;
   const p = (n) => String(n).padStart(2, '0');
-  const base = `${p(Math.floor(s / 3600))}:${p(Math.floor(s / 60) % 60)}`;
-  return s % 60 ? `${base}:${p(s % 60)}` : base;
+  const hh = Math.floor(s / 3600);
+  const rest = `${p(Math.floor(s / 60) % 60)}${s % 60 ? ':' + p(s % 60) : ''}`;
+  if (h24) return `${p(hh)}:${rest}`;
+  return `${hh % 12 || 12}:${rest} ${hh >= 12 ? 'PM' : 'AM'}`;
+}
+
+/** "+2:15" / "−0:30" style signed difference for seconds (rounded). */
+export function formatDelta(secs) {
+  const s = Math.round(secs);
+  return `${s < 0 ? '−' : '+'}${formatSeconds(Math.abs(s), { padMinutes: false })}`;
 }
 
 /**
@@ -157,6 +174,11 @@ export function computeSchedule(rundown) {
   const out = [];
   let prevEnd = null;
   for (const cue of rundown) {
+    // Group headings and notes don't take time.
+    if (cue.kind && cue.kind !== 'cue') {
+      out.push({ start: null, end: null, explicit: false });
+      continue;
+    }
     const own = parseClockTime(cue.start);
     let start = own ?? prevEnd;
     if (own != null && prevEnd != null) {

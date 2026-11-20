@@ -93,7 +93,7 @@ On first start, Windows Firewall asks about network access. Allow it on **privat
 | **Dedicated timer laptop / all-in-one PC** | Under **Outputs → When a second screen is connected, fill it with**, choose *Confidence monitor*. Every time the app starts or the HDMI cable goes in, the second screen becomes the timer. On a touchscreen, use touch mode and **⛶** (or F11) for a fullscreen controller. |
 | **Several laptops** | Run the timer on one machine. On the others, go to **Outputs → This computer → Timers on the network → Connect**. Each laptop gets its own floating window and fullscreen outputs, and its controls and hotkeys control the main timer. |
 | **Broadcast (OBS / vMix)** | Add a browser source at 1920×1080 with `http://<timer-ip>:4848/overlay`. Use the **On air** button or Companion to bring it in and out. |
-| **LED wall / projector** | **Outputs → Fullscreen outputs → Broadcast graphic** on that display, or a browser at `/overlay?bg=black`. |
+| **LED wall / projector** | **Outputs → Fullscreen outputs → Broadcast graphic** on that display, or a browser at `/overlay?bg=black`. Press **Esc** on a fullscreen output to close it. |
 | **Remote control** | Any phone or tablet can open `/controller`. |
 
 ---
@@ -107,7 +107,13 @@ On first start, Windows Firewall asks about network access. Allow it on **privat
 | **End** | Typing an end time works out the duration from the start. For *Until time* cues this is the target time. |
 | **Auto-next** | When the cue reaches zero, the next cue starts on its own. With it off, the timer runs into overtime and waits for the operator. |
 
-Each row has three buttons: **load** (the arrow, ready but not started), **start now** (green play) and **more** (⋯: warning times, notes, type, duplicate, delete).
+Each row has three buttons: **load** (the arrow, ready but not started), **start now** (green play) and **more** (⋯: warning times, notes, *flash the time when over time*, duplicate, delete).
+
+**Early / late at a glance:** once a cue has run, a small marker under **Start** shows how much later (red +0:46) or earlier (green −0:30) it started than planned. The marker under **End** shows how much longer (red) or shorter (green) it ran, and it counts live while the current cue is in overtime.
+
+**Groups and notes:** in **⋯ → Add group heading** or **Add note**, or from a cue's ⋯ panel, you can split a full day into groups. Groups can be collapsed and show their total time. Notes (e.g. *Coffee break, remind catering*) are just memos for the operator. Both are skipped by Next/Previous and don't count as cues, and a rundown without them works exactly as before.
+
+**Saved shows:** click the show name next to *Rundown* (or press **Ctrl+S**) to save, open and switch between shows. They're stored as plain files in the app's `shows` folder (**Open shows folder** in that dialog), so you can back them up or copy them to another computer.
 
 **Cue types:** *Countdown*, *Count up*, and *Until time* (counts down to a time of day, e.g. "doors at 19:00").
 
@@ -119,7 +125,8 @@ Each row has three buttons: **load** (the arrow, ready but not started), **start
 
 Both are set up under **Settings**:
 
-- **Confidence monitor:** title and speaker, time of day, next cue, progress bar, 24-hour clock, and what to show when no timer is running (*timer*, *time of day*, or *time of day + date*).
+- **General:** language and **24-hour / 12-hour clock** (used everywhere in the app).
+- **Confidence monitor:** title and speaker, time of day, next cue, progress bar, and what to show when no timer is running (*timer*, *time of day*, or *time of day + date*). Time of day is shown slightly dimmed, so nobody mistakes it for a countdown.
 - **Floating timer:** progress bar, messages, cue title, idle display, control bar (*on hover*, *always* or *hidden*), window opacity, and staying on top of fullscreen apps.
 
 URL options for `/viewer`: `?compact=1`, `?clock=0`, `?title=0`, `?next=0`, `?progress=0`, `?mirror=1` (prompter glass), `?blackout=0`, `?controls=1`.

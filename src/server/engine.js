@@ -48,8 +48,10 @@ export function defaultState() {
       uppercaseLabel: true,
       radius: 18,
     },
+    show: { name: '', dirty: false }, // which saved show is loaded (show library)
     settings: {
       language: 'en',
+      clock24: true, // 24-hour clock everywhere in the app
       defaultDuration: 300000,
       defaultWarning: 120000,
       defaultCritical: 30000,
@@ -103,6 +105,9 @@ export class Engine extends EventEmitter {
   constructor(saved) {
     super();
     this.state = mergeDefaults(defaultState(), saved || {});
+    // 0.4 -> 0.5: the 12/24-hour choice moved from the confidence-monitor settings to a general setting.
+    if (saved?.settings?.viewer?.clock24 === false && saved.settings.clock24 == null) this.state.settings.clock24 = false;
+    this.state.rundown = (this.state.rundown || []).map(sanitizeCue);
     this.host = { type: 'server' }; // replaced by the Electron shell with display/window info
     this.clients = {}; // connected clients by role
     this._advancing = false;
@@ -127,6 +132,16 @@ export class Engine extends EventEmitter {
     return this.state.rundown.findIndex((c) => c.id === this.state.currentId);
   }
 
+  /** Only the timers (rundown items that aren't group headings or notes). */
+  cues() {
+    return this.state.rundown.filter(isCue);
+  }
+
+  /** Position of the current cue among the timers (0-based), or -1. */
+  currentCueIndex() {
+    return this.cues().findIndex((c) => c.id === this.state.currentId);
+  }
+
   currentCue() {
     return this.state.rundown.find((c) => c.id === this.state.currentId) || null;
   }
@@ -146,6 +161,8 @@ export class Engine extends EventEmitter {
     const fn = ACTIONS[name];
     if (!fn) throw new Error(`Unknown action "${name}"`);
     const result = fn.call(this, params || {});
+    // Edits to the show (not transport) mark it as unsaved in the show library.
+    if (SHOW_EDITS.has(name) && this.state.show) this.state.show.dirty = true;
     this.emit('change', { persist: true, action: name });
     return result;
   }
@@ -171,6 +188,7 @@ export class Engine extends EventEmitter {
   }
 
   loadCue(cue, { autostart = false } = {}) {
+    if (cue && !isCue(cue)) throw new Error('Group headings and notes cannot be loaded');
     this.closeLogEntry();
     const now = Date.now();
     this.state.currentId = cue ? cue.id : null;
@@ -201,7 +219,7 @@ export class Engine extends EventEmitter {
     const t = this.state.timer;
     if (!t.cueId) {
       // Nothing loaded yet: load the first cue so "Start" on a fresh show just works.
-      const first = this.state.rundown[0];
+      const first = this.cues()[0];
       if (!first) return;
       this.loadCue(first);
     }
@@ -221,9 +239,9 @@ export class Engine extends EventEmitter {
   }
 
   step(delta, { autostart = false } = {}) {
-    const list = this.state.rundown;
+    const list = this.cues(); // group headings and notes are skipped
     if (!list.length) return;
-    const i = this.currentIndex();
+    const i = this.currentCueIndex();
     const next = i === -1 ? (delta > 0 ? 0 : list.length - 1) : i + delta;
     if (next < 0 || next >= list.length) return;
     this.loadCue(list[next], { autostart });
@@ -239,8 +257,8 @@ export class Engine extends EventEmitter {
     if (c.mode !== 'countup' && c.remaining <= 0) {
       this._advancing = true;
       try {
-        const i = this.currentIndex();
-        if (i < this.state.rundown.length - 1) this.dispatch('next', { autostart: true });
+        const i = this.currentCueIndex();
+        if (i < this.cues().length - 1) this.dispatch('next', { autostart: true });
       } finally {
         this._advancing = false;
       }
@@ -255,7 +273,7 @@ export class Engine extends EventEmitter {
   checkScheduledStarts() {
     if (!this.state.settings.autoStartScheduled) return;
     const now = Date.now();
-    for (const cue of this.state.rundown) {
+    for (const cue of this.cues()) {
       if (!cue.start) continue;
       const at = todayAt(cue.start, now);
       if (at == null || now < at || now - at > 10000 || this._fired.get(cue.id) === at) continue;
@@ -279,7 +297,8 @@ export class Engine extends EventEmitter {
     const cue = this.currentCue();
     const last = this.state.log[this.state.log.length - 1];
     if (!cue || (last && last.cueId === cue.id && !last.endedAt)) return;
-    this.state.log.push({ cueId: cue.id, title: cue.title, speaker: cue.speaker, planned: this.state.timer.duration, startedAt: Date.now(), endedAt: null, actual: null });
+    // startedAt uses the timer's own start, so a scheduled start that fired a moment late still logs the exact time.
+    this.state.log.push({ cueId: cue.id, title: cue.title, speaker: cue.speaker, planned: cue.duration, startedAt: this.state.timer.startedAt || Date.now(), endedAt: null, actual: null });
     if (this.state.log.length > 500) this.state.log.shift();
   }
 
@@ -296,9 +315,16 @@ function normalizeClock(v) {
   return secs == null ? '' : formatTimeOfDay(secs);
 }
 
+/** Rundown items are timers ("cue"), group headings ("group") or operator notes ("note"). */
+export const KINDS = ['cue', 'group', 'note'];
+export const isCue = (c) => !c.kind || c.kind === 'cue';
+
 function sanitizeCue(c) {
   return {
     id: String(c.id),
+    kind: KINDS.includes(c.kind) ? c.kind : 'cue',
+    flashOvertime: !!c.flashOvertime, // pulse the time on screens while this cue is in overtime
+    collapsed: !!c.collapsed, // groups only
     title: String(c.title ?? '').slice(0, 200),
     speaker: String(c.speaker ?? '').slice(0, 200),
     notes: String(c.notes ?? '').slice(0, 2000),
@@ -328,7 +354,7 @@ const ACTIONS = {
   load(p) {
     let cue = null;
     if (p.id) cue = this.state.rundown.find((c) => c.id === p.id);
-    else if (p.index != null) cue = this.state.rundown[Number(p.index) - 1]; // 1-based for humans
+    else if (p.index != null) cue = this.cues()[Number(p.index) - 1]; // 1-based cue number (headings/notes not counted)
     if (!cue) throw new Error('Cue not found');
     this.loadCue(cue, { autostart: truthy(p.autostart) });
   },
@@ -424,7 +450,7 @@ const ACTIONS = {
     const after = p.afterId ? list.findIndex((c) => c.id === p.afterId) : -1;
     if (after >= 0) list.splice(after + 1, 0, cue);
     else list.push(cue);
-    if (!this.state.currentId) this.loadCue(cue);
+    if (!this.state.currentId && isCue(cue)) this.loadCue(cue);
     return cue;
   },
   updateCue(p) {
@@ -449,7 +475,11 @@ const ACTIONS = {
     const i = list.findIndex((c) => c.id === p.id);
     if (i < 0) return;
     list.splice(i, 1);
-    if (this.state.currentId === p.id) this.loadCue(list[Math.min(i, list.length - 1)] || null);
+    if (this.state.currentId === p.id) {
+      this.state.timer = emptyTimer(); // the deleted cue's log entry stays as it was
+      this.state.currentId = null;
+      this.loadCue(list.slice(i).find(isCue) || this.cues().pop() || null);
+    }
   },
   moveCue(p) {
     const list = this.state.rundown;
@@ -468,11 +498,16 @@ const ACTIONS = {
   replaceRundown(p) {
     if (!Array.isArray(p.rundown)) throw new Error('rundown must be an array');
     this.state.rundown = p.rundown.slice(0, 500).map((c) => this.newCue({ ...c, id: c.id || randomUUID() }));
-    this.loadCue(this.state.rundown[0] || null);
+    this.loadCue(this.cues()[0] || null);
   },
   clearRundown() {
     this.state.rundown = [];
     this.loadCue(null);
+  },
+  /** Collapse/expand a group heading (shared, so every controller shows the same). */
+  toggleGroup(p) {
+    const g = this.state.rundown.find((c) => c.id === p.id && c.kind === 'group');
+    if (g) g.collapsed = p.value == null ? !g.collapsed : truthy(p.value);
   },
 
   // ---- settings & data ----
@@ -485,7 +520,15 @@ const ACTIONS = {
       if (show[k] != null) this.state[k] = mergeDefaults(defaultState()[k], show[k]);
     }
     this.state.rundown = (this.state.rundown || []).map((c) => this.newCue(c));
-    this.loadCue(this.state.rundown[0] || null);
+    this.loadCue(this.cues()[0] || null);
+    this.state.show = { name: String(p.name || ''), dirty: false };
+  },
+  /** Start an empty show (theme, messages and settings stay). */
+  newShow() {
+    this.state.rundown = [];
+    this.loadCue(null);
+    this.state.log = [];
+    this.state.show = { name: '', dirty: false };
   },
   resetLog() { this.state.log = []; },
 
@@ -498,3 +541,5 @@ const ACTIONS = {
 };
 
 export const ACTION_NAMES = Object.keys(ACTIONS);
+
+const SHOW_EDITS = new Set(['addCue', 'updateCue', 'deleteCue', 'moveCue', 'duplicateCue', 'replaceRundown', 'clearRundown', 'setPresets', 'overlayUpdate', 'updateTheme']);

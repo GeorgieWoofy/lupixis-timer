@@ -1,12 +1,13 @@
 // Controller UI. Every button just sends an action to the server; the server broadcasts the new state
 // and `render()` redraws from it. That way several controllers (laptop + phone) always agree.
 import { Connection, loadLanguage, applyI18n, t, h, setVal, formatClock } from '/shared/client.js';
-import { timerText, parseDuration, formatDurationInput, parseClockTime, formatTimeOfDay, computeSchedule, todayAt, formatSeconds, MODES } from '/shared/timecalc.js';
+import { timerText, parseDuration, formatDurationInput, parseClockTime, formatTimeOfDay, formatDelta, computeSchedule, todayAt, formatSeconds, MODES } from '/shared/timecalc.js';
 
 const $ = (id) => document.getElementById(id);
 const conn = new Connection({ role: 'controller' });
 let S = null; // latest server state
 let lang = null;
+let langReady = false; // translations loaded (don't draw text before that)
 let info = { port: location.port, addresses: [] };
 
 const HOTKEYS = ['toggle', 'next', 'previous', 'addMinute', 'subtractMinute', 'blackout', 'toggleMessage', 'toggleFloating'];
@@ -143,106 +144,24 @@ $('btnAddCue').onclick = async () => {
   requestAnimationFrame(() => rows.get(cue?.id)?.f.title.focus());
 };
 
-function createRow(id) {
-  const f = {};
-  const r = { f, cue: null };
-  const update = (patch) => quiet(act('updateCue', { id, patch }));
+const h24 = () => S?.settings.clock24 !== false;
+/** Stored "HH:MM" (24 h) -> shown in the user's clock format. */
+const showClock = (str) => (str ? formatTimeOfDay(parseClockTime(str), h24()) : '');
+const secondsOfDay = (ts) => {
+  const d = new Date(ts);
+  return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+};
+/** Write an early/late marker: green "−0:30" when early, red "+0:46" when late, nothing within 5 s. */
+function setDelta(el, secs) {
+  const show = secs != null && Math.abs(secs) >= 5;
+  const text = show ? formatDelta(secs) : '';
+  if (el.textContent !== text) el.textContent = text;
+  el.className = `delta${show ? (secs > 0 ? ' late' : ' early') : ''}`;
+}
 
-  r.el = h('div', { class: 'cue', dataset: { id } },
-    h('div', { class: 'cue-grid' },
-      (f.num = h('span', { class: 'cue-num', title: t('rundown.dragHint') })),
-      h('div', { class: 'c-title' },
-        (f.title = h('input', { placeholder: t('rundown.titlePlaceholder') })),
-        (f.speaker = h('input', { class: 'speaker', placeholder: t('rundown.speakerPlaceholder') })),
-      ),
-      h('div', { class: 'c-mode' }, (f.mode = h('select', {}, MODES.map((m) => h('option', { value: m }, t(`mode.${m}`)))))),
-      h('div', { class: 'c-start' }, (f.start = h('input', { title: t('rundown.startHint') }))),
-      h('div', { class: 'c-dur' }, (f.time = h('input'))),
-      h('div', { class: 'c-end' }, (f.end = h('input', { title: t('rundown.endHint') }))),
-      h('div', { class: 'c-auto' }, (f.auto = h('input', { type: 'checkbox', title: t('rundown.autoHint') }))),
-      h('div', { class: 'c-actions' },
-        (f.load = h('button', { class: 'btn', title: t('rundown.load') }, svg(ICON_LOAD))),
-        (f.go = h('button', { class: 'btn go-now', title: t('rundown.startNow') }, svg(ICON_PLAY))),
-        (f.moreBtn = h('button', { class: 'btn', title: t('rundown.details') }, svg(ICON_DOTS))),
-      ),
-    ),
-    (f.more = h('div', { class: 'cue-more', hidden: true },
-      // Type lives here in touch mode, where the Type column is hidden to make room.
-      h('label', { class: 'field touch-only' }, h('span', {}, t('rundown.colType')), (f.mode2 = h('select', {}, MODES.map((m) => h('option', { value: m }, t(`mode.${m}`)))))),
-      h('label', { class: 'field' }, h('span', {}, t('rundown.warning')), (f.warning = h('input'))),
-      h('label', { class: 'field' }, h('span', {}, t('rundown.critical')), (f.critical = h('input'))),
-      h('label', { class: 'field notes' }, h('span', {}, t('rundown.notes')), (f.notes = h('textarea', { rows: 2 }))),
-      h('div', { class: 'row' },
-        h('button', { class: 'btn small', onclick: () => quiet(act('addCue', { afterId: id })) }, t('rundown.insertBelow')),
-        h('button', { class: 'btn small', onclick: () => quiet(act('duplicateCue', { id })) }, t('rundown.duplicate')),
-        h('div', { class: 'spacer' }),
-        h('button', { class: 'btn small danger', onclick: () => confirm(t('rundown.confirmDelete', { title: r.cue?.title || '' })) && quiet(act('deleteCue', { id })) }, t('common.delete')),
-      ),
-    )),
-    (f.progress = h('div', { class: 'cue-progress' })),
-  );
-
-  f.title.onchange = () => update({ title: f.title.value });
-  f.speaker.onchange = () => update({ speaker: f.speaker.value });
-  f.notes.onchange = () => update({ notes: f.notes.value });
-  f.auto.onchange = () => update({ autoAdvance: f.auto.checked });
-  f.mode2.onchange = () => {
-    f.mode.value = f.mode2.value;
-    f.mode.onchange();
-  };
-  f.mode.onchange = () => {
-    const patch = { mode: f.mode.value };
-    if (patch.mode === 'clock' && !r.cue.target) {
-      const d = new Date(Date.now() + 3600000);
-      patch.target = `${String(d.getHours()).padStart(2, '0')}:00`;
-    }
-    update(patch);
-  };
-  // Duration: editing it moves the end time.
-  f.time.onchange = () => {
-    const ms = parseDuration(f.time.value);
-    if (ms == null) return invalid(f.time), (f.time.value = formatDurationInput(r.cue.duration));
-    update({ duration: ms });
-  };
-  // Start: empty = follows the previous cue (shown faintly); a time = starts itself at that time.
-  f.start.onchange = () => {
-    const v = f.start.value.trim();
-    if (v && parseClockTime(v) == null) return invalid(f.start), (f.start.value = r.cue.start);
-    update({ start: v });
-  };
-  // End: sets the duration from the start time (or the target time for "until time" cues).
-  f.end.onchange = () => {
-    const v = f.end.value.trim();
-    const endSecs = parseClockTime(v);
-    if (endSecs == null) return invalid(f.end), (f.end.value = formatTimeOfDay(r.sched?.end));
-    if (r.cue.mode === 'clock') return update({ target: formatTimeOfDay(endSecs) });
-    const start = r.sched?.start;
-    if (start == null) {
-      toast(t('rundown.needStart'), 'error');
-      return invalid(f.end), (f.end.value = '');
-    }
-    let secs = endSecs - (start % 86400);
-    if (secs <= 0) secs += 86400;
-    update({ duration: secs * 1000 });
-  };
-  for (const k of ['warning', 'critical']) {
-    f[k].onchange = () => {
-      const ms = parseDuration(f[k].value);
-      if (ms == null) return invalid(f[k]), (f[k].value = formatDurationInput(r.cue[k]));
-      update({ [k]: ms });
-    };
-  }
-  f.load.onclick = () => quiet(act('load', { id }));
-  f.go.onclick = () => quiet(act('load', { id, autostart: true }));
-  f.num.ondblclick = () => quiet(act('load', { id }));
-  f.moreBtn.onclick = () => (f.more.hidden = !f.more.hidden);
-  r.el.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.target.blur();
-    if (e.key === 'Escape' && e.target.tagName === 'INPUT') e.target.blur();
-  });
-
-  // Drag to reorder (grab the number).
-  f.num.addEventListener('mousedown', () => (r.el.draggable = true));
+/** Shared by every row type: drag to reorder by grabbing the handle. */
+function attachDrag(r, id, handle) {
+  handle.addEventListener('mousedown', () => (r.el.draggable = true));
   r.el.addEventListener('dragstart', (e) => {
     dragId = id;
     e.dataTransfer.effectAllowed = 'move';
@@ -273,46 +192,255 @@ function createRow(id) {
     if (from !== to) quiet(act('moveCue', { id: dragId, toIndex: to }));
     dragId = null;
   });
+  r.el.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === 'Escape') && e.target.tagName === 'INPUT') e.target.blur();
+  });
+}
+
+const deleteItem = (r, id) => confirm(t('rundown.confirmDelete', { title: r.cue?.title || '' })) && quiet(act('deleteCue', { id }));
+const insertButtons = (id) => [
+  h('button', { class: 'btn small', onclick: () => quiet(act('addCue', { afterId: id })) }, t('rundown.insertBelow')),
+  h('button', { class: 'btn small', onclick: () => quiet(act('addCue', { afterId: id, cue: { kind: 'group', title: t('rundown.newGroup') } })) }, t('rundown.groupBelow')),
+  h('button', { class: 'btn small', onclick: () => quiet(act('addCue', { afterId: id, cue: { kind: 'note', title: '' } })) }, t('rundown.noteBelow')),
+];
+
+// ---- group heading row ----
+function createGroupRow(id) {
+  const f = {};
+  const r = { f, cue: null, kind: 'group' };
+  r.el = h('div', { class: 'cue group-row', dataset: { id } },
+    (f.toggle = h('button', { class: 'group-toggle', title: t('rundown.collapse'), onclick: () => quiet(act('toggleGroup', { id })) }, '▾')),
+    (f.title = h('input', { class: 'group-title', placeholder: t('rundown.groupPlaceholder') })),
+    (f.summary = h('span', { class: 'group-summary muted small' })),
+    h('span', { class: 'group-handle', title: t('rundown.dragHint') }, '⠿'),
+    (f.del = h('button', { class: 'btn icon-sm', title: t('common.delete'), onclick: () => deleteItem(r, id) }, '×')),
+  );
+  f.title.onchange = () => quiet(act('updateCue', { id, patch: { title: f.title.value } }));
+  attachDrag(r, id, r.el.querySelector('.group-handle'));
   return r;
 }
 
+// ---- operator note row (e.g. "Break 20:00") ----
+function createNoteRow(id) {
+  const f = {};
+  const r = { f, cue: null, kind: 'note' };
+  r.el = h('div', { class: 'cue note-row', dataset: { id } },
+    h('span', { class: 'note-icon', title: t('rundown.dragHint') }, '✎'),
+    (f.title = h('input', { class: 'note-text', placeholder: t('rundown.notePlaceholder') })),
+    (f.del = h('button', { class: 'btn icon-sm', title: t('common.delete'), onclick: () => deleteItem(r, id) }, '×')),
+  );
+  f.title.onchange = () => quiet(act('updateCue', { id, patch: { title: f.title.value } }));
+  attachDrag(r, id, r.el.querySelector('.note-icon'));
+  return r;
+}
+
+// ---- timer row ----
+function createRow(id) {
+  const f = {};
+  const r = { f, cue: null, kind: 'cue' };
+  const update = (patch) => quiet(act('updateCue', { id, patch }));
+
+  r.el = h('div', { class: 'cue', dataset: { id } },
+    h('div', { class: 'cue-grid' },
+      (f.num = h('span', { class: 'cue-num', title: t('rundown.dragHint') })),
+      h('div', { class: 'c-title' },
+        (f.title = h('input', { placeholder: t('rundown.titlePlaceholder') })),
+        (f.speaker = h('input', { class: 'speaker', placeholder: t('rundown.speakerPlaceholder') })),
+      ),
+      h('div', { class: 'c-mode' }, (f.mode = h('select', {}, MODES.map((m) => h('option', { value: m }, t(`mode.${m}`)))))),
+      h('div', { class: 'c-start' }, (f.start = h('input', { title: t('rundown.startHint') })), (f.startDelta = h('span', { class: 'delta', title: t('rundown.startDeltaHint') }))),
+      h('div', { class: 'c-dur' }, (f.time = h('input'))),
+      h('div', { class: 'c-end' }, (f.end = h('input', { title: t('rundown.endHint') })), (f.endDelta = h('span', { class: 'delta', title: t('rundown.endDeltaHint') }))),
+      h('div', { class: 'c-auto' }, (f.auto = h('input', { type: 'checkbox', title: t('rundown.autoHint') }))),
+      h('div', { class: 'c-actions' },
+        (f.load = h('button', { class: 'btn', title: t('rundown.load') }, svg(ICON_LOAD))),
+        (f.go = h('button', { class: 'btn go-now', title: t('rundown.startNow') }, svg(ICON_PLAY))),
+        (f.moreBtn = h('button', { class: 'btn', title: t('rundown.details') }, svg(ICON_DOTS))),
+      ),
+    ),
+    (f.more = h('div', { class: 'cue-more', hidden: true },
+      // Type lives here when the Type column is hidden (touch mode / narrow window).
+      h('label', { class: 'field type-alt' }, h('span', {}, t('rundown.colType')), (f.mode2 = h('select', {}, MODES.map((m) => h('option', { value: m }, t(`mode.${m}`)))))),
+      h('label', { class: 'field' }, h('span', {}, t('rundown.warning')), (f.warning = h('input'))),
+      h('label', { class: 'field' }, h('span', {}, t('rundown.critical')), (f.critical = h('input'))),
+      h('label', { class: 'check wide-check' }, (f.flash = h('input', { type: 'checkbox' })), h('span', {}, t('rundown.flashOvertime'))),
+      h('label', { class: 'check wide-check auto-alt' }, (f.auto2 = h('input', { type: 'checkbox' })), h('span', {}, t('rundown.colAuto'))),
+      h('label', { class: 'field notes' }, h('span', {}, t('rundown.notes')), (f.notes = h('textarea', { rows: 2 }))),
+      h('div', { class: 'row wrap' },
+        ...insertButtons(id),
+        h('button', { class: 'btn small', onclick: () => quiet(act('duplicateCue', { id })) }, t('rundown.duplicate')),
+        h('div', { class: 'spacer' }),
+        h('button', { class: 'btn small danger', onclick: () => deleteItem(r, id) }, t('common.delete')),
+      ),
+    )),
+    (f.progress = h('div', { class: 'cue-progress' })),
+  );
+
+  f.title.onchange = () => update({ title: f.title.value });
+  f.speaker.onchange = () => update({ speaker: f.speaker.value });
+  f.notes.onchange = () => update({ notes: f.notes.value });
+  f.auto.onchange = () => update({ autoAdvance: f.auto.checked });
+  f.auto2.onchange = () => update({ autoAdvance: f.auto2.checked });
+  f.flash.onchange = () => update({ flashOvertime: f.flash.checked });
+  f.mode2.onchange = () => {
+    f.mode.value = f.mode2.value;
+    f.mode.onchange();
+  };
+  f.mode.onchange = () => {
+    const patch = { mode: f.mode.value };
+    if (patch.mode === 'clock' && !r.cue.target) {
+      const d = new Date(Date.now() + 3600000);
+      patch.target = `${String(d.getHours()).padStart(2, '0')}:00`;
+    }
+    update(patch);
+  };
+  // Duration: editing it moves the end time.
+  f.time.onchange = () => {
+    const ms = parseDuration(f.time.value);
+    if (ms == null) return invalid(f.time), (f.time.value = formatDurationInput(r.cue.duration));
+    update({ duration: ms });
+  };
+  // Start: empty = follows the previous cue (shown faintly); a time = starts itself at that time.
+  f.start.onchange = () => {
+    const v = f.start.value.trim();
+    if (v && parseClockTime(v) == null) return invalid(f.start), (f.start.value = showClock(r.cue.start));
+    update({ start: v });
+  };
+  // End: sets the duration from the start time (or the target time for "until time" cues).
+  f.end.onchange = () => {
+    const v = f.end.value.trim();
+    const endSecs = parseClockTime(v);
+    if (endSecs == null) return invalid(f.end), (f.end.value = formatTimeOfDay(r.sched?.end, h24()));
+    if (r.cue.mode === 'clock') return update({ target: formatTimeOfDay(endSecs) });
+    const start = r.sched?.start;
+    if (start == null) {
+      toast(t('rundown.needStart'), 'error');
+      return invalid(f.end), (f.end.value = '');
+    }
+    let secs = endSecs - (start % 86400);
+    if (secs <= 0) secs += 86400;
+    update({ duration: secs * 1000 });
+  };
+  for (const k of ['warning', 'critical']) {
+    f[k].onchange = () => {
+      const ms = parseDuration(f[k].value);
+      if (ms == null) return invalid(f[k]), (f[k].value = formatDurationInput(r.cue[k]));
+      update({ [k]: ms });
+    };
+  }
+  f.load.onclick = () => quiet(act('load', { id }));
+  f.go.onclick = () => quiet(act('load', { id, autostart: true }));
+  f.num.ondblclick = () => quiet(act('load', { id }));
+  f.moreBtn.onclick = () => (f.more.hidden = !f.more.hidden);
+  attachDrag(r, id, f.num);
+  return r;
+}
+
+const isCueItem = (c) => !c.kind || c.kind === 'cue';
+
 function renderRundown(s) {
   const list = $('cueList');
-  const cur = s.rundown.findIndex((c) => c.id === s.currentId);
   const sched = computeSchedule(s.rundown);
-  s.rundown.forEach((cue, i) => {
-    let r = rows.get(cue.id);
-    if (!r) rows.set(cue.id, (r = createRow(cue.id)));
-    r.cue = cue;
+  const cueList = s.rundown.filter(isCueItem);
+  const curCue = cueList.findIndex((c) => c.id === s.currentId);
+  // Latest show-report entry per cue: when it really started / how long it really ran.
+  const lastLog = new Map();
+  for (const e of s.log || []) lastLog.set(e.cueId, e);
+
+  let cueNo = 0;
+  let collapsed = false;
+  let group = null;
+  const groupStats = new Map(); // group id -> { n, ms, start, end }
+
+  s.rundown.forEach((item, i) => {
+    let r = rows.get(item.id);
+    const kind = item.kind || 'cue';
+    if (r && r.kind !== kind) {
+      r.el.remove();
+      r = null;
+    }
+    if (!r) rows.set(item.id, (r = kind === 'group' ? createGroupRow(item.id) : kind === 'note' ? createNoteRow(item.id) : createRow(item.id)));
+    r.cue = item;
     r.sched = sched[i];
     const f = r.f;
+
+    if (kind === 'group') {
+      group = item;
+      collapsed = !!item.collapsed;
+      groupStats.set(item.id, { n: 0, ms: 0, start: null, end: null });
+      setVal(f.title, item.title);
+      setText(f.toggle, item.collapsed ? '▸' : '▾');
+      r.el.classList.toggle('collapsed', !!item.collapsed);
+      r.el.classList.remove('in-collapsed');
+      return;
+    }
+    r.el.classList.toggle('in-collapsed', collapsed);
+    if (kind === 'note') {
+      setVal(f.title, item.title);
+      return;
+    }
+
+    // ---- timer row ----
+    const cue = item;
     const sc = sched[i];
-    setText(f.num, String(i + 1));
+    const no = ++cueNo;
+    if (group) {
+      const g = groupStats.get(group.id);
+      g.n++;
+      if (cue.mode !== 'clock') g.ms += cue.duration;
+      if (g.start == null && sc.start != null) g.start = sc.start;
+      if (sc.end != null) g.end = sc.end;
+    }
+    setText(f.num, String(no));
     setVal(f.title, cue.title);
     setVal(f.speaker, cue.speaker);
     setVal(f.mode, cue.mode);
     setVal(f.mode2, cue.mode);
     // Start: own time in the field; otherwise the planned (chained) start as a faint placeholder.
-    setVal(f.start, cue.start);
-    f.start.placeholder = !cue.start && sc.start != null ? formatTimeOfDay(sc.start) : '--:--';
+    setVal(f.start, showClock(cue.start));
+    f.start.placeholder = !cue.start && sc.start != null ? formatTimeOfDay(sc.start, h24()) : '--:--';
     f.start.parentElement.classList.toggle('scheduled', !!cue.start && s.settings.autoStartScheduled);
-    // Duration: editable, except for "until time" cues where it follows from start → target.
+    // Duration: editable, except for "until time" cues where it follows from start -> target.
     const isClock = cue.mode === 'clock';
     f.time.disabled = isClock;
     setVal(f.time, isClock ? (sc.start != null && sc.end != null ? formatDurationInput((sc.end - sc.start) * 1000) : '—') : formatDurationInput(cue.duration));
     f.time.placeholder = 'M:SS';
     f.time.title = isClock ? t('rundown.clockDurationHint') : t('rundown.durationHint');
     // End: computed from start + duration (or the target time).
-    setVal(f.end, isClock ? cue.target : formatTimeOfDay(sc.end));
+    setVal(f.end, isClock ? showClock(cue.target) : formatTimeOfDay(sc.end, h24()));
     f.end.placeholder = '--:--';
     setVal(f.auto, cue.autoAdvance);
+    setVal(f.auto2, cue.autoAdvance);
+    setVal(f.flash, cue.flashOvertime);
     setVal(f.warning, formatDurationInput(cue.warning));
     setVal(f.critical, formatDurationInput(cue.critical));
     setVal(f.notes, cue.notes);
-    r.el.classList.toggle('current', i === cur);
-    r.el.classList.toggle('done', cur >= 0 && i < cur);
-    if (i !== cur) f.progress.style.width = '0';
+
+    // Early / late markers from what really happened (show report).
+    const log = lastLog.get(cue.id);
+    let startDelta = null;
+    if (log && sc.start != null) {
+      startDelta = secondsOfDay(log.startedAt) - (sc.start % 86400);
+      if (startDelta > 43200) startDelta -= 86400;
+      if (startDelta < -43200) startDelta += 86400;
+    }
+    setDelta(f.startDelta, startDelta);
+    r.liveEnd = cue.id === s.currentId && !log?.endedAt; // the current cue's end marker updates every frame
+    setDelta(f.endDelta, !r.liveEnd && log?.actual != null && !isClock ? (log.actual - cue.duration) / 1000 : null);
+
+    const ci = no - 1;
+    r.el.classList.toggle('current', ci === curCue);
+    r.el.classList.toggle('done', curCue >= 0 && ci < curCue);
+    if (ci !== curCue) f.progress.style.width = '0';
   });
+
+  // Group summaries: "3 timers · 45:00 · 09:00–09:45"
+  for (const [id, g] of groupStats) {
+    const r = rows.get(id);
+    const range = g.start != null && g.end != null ? ` · ${formatTimeOfDay(g.start, h24())}–${formatTimeOfDay(g.end, h24())}` : '';
+    setText(r.f.summary, `${t('rundown.groupCount', { n: g.n })} · ${formatDurationInput(g.ms)}${range}`);
+  }
+
   for (const [id, r] of rows) {
     if (!s.rundown.some((c) => c.id === id)) {
       r.el.remove();
@@ -323,9 +451,116 @@ function renderRundown(s) {
   const have = [...list.children];
   if (want.length !== have.length || want.some((el, i) => have[i] !== el)) want.forEach((el) => list.append(el));
   $('emptyRundown').hidden = s.rundown.length > 0;
-  const total = s.rundown.filter((c) => c.mode !== 'clock').reduce((a, c) => a + c.duration, 0);
-  setText($('rundownTotal'), s.rundown.length ? t('rundown.total', { n: s.rundown.length, time: formatDurationInput(total) }) : '');
+  const total = cueList.filter((c) => c.mode !== 'clock').reduce((a, c) => a + c.duration, 0);
+  setText($('rundownTotal'), cueList.length ? t(cueList.length === 1 ? 'rundown.totalOne' : 'rundown.total', { n: cueList.length, time: formatDurationInput(total) }) : '');
 }
+
+/** Per frame: the current cue's live overrun under End (red "+0:12" once it passes zero). */
+function renderLiveEnd(c) {
+  const r = rows.get(S.currentId);
+  if (!r || r.kind !== 'cue' || !r.liveEnd) return;
+  const over = c.loaded && c.mode !== 'clock' && c.mode !== 'countup' && c.remaining < 0 ? -c.remaining / 1000 : null;
+  const countupOver = c.mode === 'countup' && c.duration > 0 && c.elapsed > c.duration ? (c.elapsed - c.duration) / 1000 : null;
+  setDelta(r.f.endDelta, over ?? countupOver);
+}
+
+// ---- saved shows library ----
+const api = (path, body) =>
+  fetch(path, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {})
+    .then((r) => r.json())
+    .then((r) => (r.ok === false ? Promise.reject(new Error(r.error)) : r));
+
+async function openShows() {
+  closeMenu();
+  $('saveAsName').value = S?.show?.name || '';
+  $('btnOpenShowsFolder').hidden = !bridge;
+  $('showsDialog').showModal();
+  await refreshShowList();
+}
+async function refreshShowList() {
+  const list = await api('/api/shows').catch(() => []);
+  const cur = S?.show?.name;
+  const fmt = (ms) => new Date(ms).toLocaleString(lang || 'en', { dateStyle: 'medium', timeStyle: 'short', hour12: !h24() });
+  $('showList').replaceChildren(
+    ...(list.length
+      ? list.map((sh) =>
+          h('div', { class: `show-item${sh.name === cur ? ' current' : ''}` },
+            h('div', { class: 'show-meta' }, h('b', {}, sh.name), h('span', { class: 'muted small' }, `${t(sh.cues === 1 ? 'rundown.totalOneShort' : 'rundown.totalShort', { n: sh.cues })} · ${fmt(sh.modified)}`)),
+            h('button', { class: 'btn small primary', onclick: () => loadShow(sh.name) }, t('shows.load')),
+            h('button', { class: 'btn small', title: t('common.delete'), onclick: () => deleteShow(sh.name) }, '×'),
+          ),
+        )
+      : [h('p', { class: 'hint' }, t('shows.none'))]),
+  );
+}
+async function saveShow(name) {
+  try {
+    const r = await api('/api/shows/save', { name });
+    toast(t('shows.saved', { name: r.name }));
+    if ($('showsDialog').open) refreshShowList();
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+async function loadShow(name) {
+  if (S.show?.dirty && S.rundown.length && !confirm(t('shows.confirmDiscard'))) return;
+  try {
+    await api('/api/shows/load', { name });
+    $('showsDialog').close();
+    toast(t('shows.loaded', { name }));
+  } catch (e) {
+    toast(e.message, 'error');
+  }
+}
+async function deleteShow(name) {
+  if (!confirm(t('shows.confirmDelete', { name }))) return;
+  await api('/api/shows/delete', { name }).catch((e) => toast(e.message, 'error'));
+  refreshShowList();
+}
+$('btnShows').onclick = openShows;
+$('showChip').onclick = openShows;
+$('btnShowsClose').onclick = () => $('showsDialog').close();
+$('saveAsForm').onsubmit = (e) => {
+  e.preventDefault();
+  const name = $('saveAsName').value.trim();
+  if (!name) return invalid($('saveAsName'));
+  saveShow(name);
+};
+$('btnSaveShow').onclick = () => {
+  closeMenu();
+  S?.show?.name ? saveShow(S.show.name) : openShows();
+};
+$('btnNewShow').onclick = async () => {
+  if (S.show?.dirty && S.rundown.length && !confirm(t('shows.confirmDiscard'))) return;
+  await act('newShow');
+  $('showsDialog').close();
+};
+$('btnOpenShowsFolder').onclick = () => bridge?.command('openShowsFolder');
+// Ctrl+S saves the current show (or asks for a name).
+document.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+    e.preventDefault();
+    S?.show?.name ? saveShow(S.show.name) : openShows();
+  }
+});
+function renderShowChip(s) {
+  const sh = s.show || {};
+  setText($('showName'), sh.name || t('shows.unsaved'));
+  $('showChip').classList.toggle('unnamed', !sh.name);
+  $('showDirty').hidden = !(sh.dirty && sh.name);
+  $('showDirty').title = t('shows.dirty');
+}
+
+$('btnAddGroup').onclick = async () => {
+  closeMenu();
+  const g = await act('addCue', { cue: { kind: 'group', title: t('rundown.newGroup') } });
+  requestAnimationFrame(() => rows.get(g?.id)?.f.title.select());
+};
+$('btnAddNote').onclick = async () => {
+  closeMenu();
+  const n = await act('addCue', { cue: { kind: 'note', title: '' } });
+  requestAnimationFrame(() => rows.get(n?.id)?.f.title.focus());
+};
 
 // ---- rundown menu ----
 const closeMenu = () => document.querySelectorAll('details.menu').forEach((d) => (d.open = false));
@@ -595,7 +830,7 @@ let localInfo = null;
 if (bridge) {
   const setInfo = (i) => {
     localInfo = i;
-    if (S) renderOutputs(S), renderSettings(S);
+    if (S && langReady) renderOutputs(S), renderSettings(S);
   };
   bridge.info().then(setInfo);
   bridge.onUpdate(setInfo);
@@ -762,7 +997,8 @@ document.querySelectorAll('[data-viewer]').forEach((cb) => {
   cb.onchange = () => quiet(act('updateSettings', { patch: { viewer: { [cb.dataset.viewer]: cb.checked } } }));
 });
 $('setKeepOnTop').onchange = () => quiet(act('updateSettings', { patch: { floatingKeepOnTop: $('setKeepOnTop').checked } }));
-$('setAutoStart').onchange = () => quiet(act('updateSettings', { patch: { autoStartScheduled: $('setAutoStart').checked } }));
+$('setClock24').onchange = () => quiet(act('updateSettings', { patch: { clock24: $('setClock24').checked } }));
+$('setAutoStart').onchange =() => quiet(act('updateSettings', { patch: { autoStartScheduled: $('setAutoStart').checked } }));
 document.querySelectorAll('[data-viewer-select]').forEach((el) => {
   el.onchange = () => quiet(act('updateSettings', { patch: { viewer: { [el.dataset.viewerSelect]: el.value } } }));
 });
@@ -868,6 +1104,7 @@ async function renderSettings(s) {
   document.querySelectorAll('[data-viewer]').forEach((cb) => setVal(cb, st.viewer[cb.dataset.viewer]));
   setVal($('setKeepOnTop'), st.floatingKeepOnTop);
   setVal($('setAutoStart'), st.autoStartScheduled);
+  setVal($('setClock24'), st.clock24 !== false);
   renderIntegrations(st);
   renderClipStatus();
   document.querySelectorAll('[data-viewer-select]').forEach((el) => setVal(el, st.viewer[el.dataset.viewerSelect]));
@@ -899,12 +1136,14 @@ conn.on('state', async (s) => {
   S = s;
   if (s.settings.language !== lang) {
     lang = s.settings.language;
+    langReady = false;
     await loadLanguage(lang);
+    langReady = true;
     applyI18n();
     // Rebuild translated pieces.
     rows.forEach((r) => r.el.remove());
     rows.clear();
-    presetsKey = displaysKey = '';
+    presetsKey = displaysKey = networkKey = clipListKey = '';
     buildHotkeys();
     renderLinks();
     setText($('connText'), conn.connected ? t('top.connected') : t('top.offline'));
@@ -913,9 +1152,10 @@ conn.on('state', async (s) => {
 });
 
 function render(s) {
-  const i = s.rundown.findIndex((c) => c.id === s.currentId);
-  const cue = s.rundown[i];
-  const next = s.rundown[i + 1];
+  const cues = s.rundown.filter(isCueItem);
+  const i = cues.findIndex((c) => c.id === s.currentId);
+  const cue = cues[i];
+  const next = cues[i + 1];
   setText($('nowIndex'), cue ? String(i + 1) : '–');
   setText($('nowTitle'), cue ? cue.title || t('viewer.untitled') : t('now.nothingLoaded'));
   setText($('nowSpeaker'), cue?.speaker || '');
@@ -924,6 +1164,7 @@ function render(s) {
   const cl = s.clients || {};
   setText($('clientsCount'), t('top.clients', { n: (cl.viewer || 0) + (cl.overlay || 0) + (cl.floating || 0) }));
   renderRundown(s);
+  renderShowChip(s);
   renderMessage(s);
   renderBroadcast(s);
   renderOutputs(s);
@@ -949,11 +1190,13 @@ function frame() {
   if (S) {
     const c = conn.timer();
     setText($('bigTime'), timerText(c));
-    const cls = `card now phase-${c.phase}`;
+    const pulse = c.phase === 'overtime' && !!S.rundown.find((x) => x.id === S.currentId)?.flashOvertime;
+    const cls = `card now phase-${c.phase}${pulse ? ' pulse-overtime' : ''}`;
     if ($('nowCard').className !== cls) $('nowCard').className = cls;
     $('bigProgress').style.width = `${(c.progress * 100).toFixed(2)}%`;
     const r = rows.get(S.currentId);
-    if (r) r.f.progress.style.width = `${(c.progress * 100).toFixed(2)}%`;
+    if (r?.f.progress) r.f.progress.style.width = `${(c.progress * 100).toFixed(2)}%`;
+    renderLiveEnd(c);
 
     const stateKey = !c.loaded ? 'idle' : c.running ? 'running' : c.started ? 'paused' : 'ready';
     const pill = $('nowState');
@@ -968,7 +1211,7 @@ function frame() {
     let ends = '';
     if (c.loaded && c.mode !== 'countup' && c.running) {
       ends = c.remaining > 0
-        ? t('now.endsAt', { time: formatClock(conn.now() + c.remaining, S.settings.viewer.clock24) })
+        ? t('now.endsAt', { time: formatClock(conn.now() + c.remaining, S.settings.clock24) })
         : t('now.over', { time: timerText(c).slice(1) });
     }
     setText($('nowEnds'), ends);
@@ -976,7 +1219,7 @@ function frame() {
     const clips = conn.clipsNow();
     setText($('nowClips'), clips.map((cl) => `▶ ${cl.name} · ${formatSeconds(Math.ceil(cl.remainingNow))}`).join('   '));
     renderClipList(clips);
-    setText($('topClock'), formatClock(conn.now(), S.settings.viewer.clock24));
+    setText($('topClock'), formatClock(conn.now(), S.settings.clock24));
   }
   requestAnimationFrame(frame);
 }

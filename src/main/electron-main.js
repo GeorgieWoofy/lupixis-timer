@@ -210,6 +210,11 @@ ipcMain.on('floating:minimize', () => {
   floatingWin?.minimize();
 });
 ipcMain.on('floating:close', () => closeFloating());
+// Esc pressed inside a fullscreen output page closes that output (only output windows, never the controller).
+ipcMain.on('output:close', (e) => {
+  const win = BrowserWindow.fromWebContents(e.sender);
+  if (win && [...outputs.values()].includes(win)) win.close();
+});
 
 // Some fullscreen apps (PowerPoint included) grab the top spot when they start a slideshow.
 // Re-asserting every couple of seconds keeps the floating timer visible without stealing focus.
@@ -238,12 +243,13 @@ function openOutput(displayId, view) {
     title: `Lupixis Timer – ${view}`,
     icon: winIcon(),
     autoHideMenuBar: true,
+    webPreferences: { preload: PRELOAD },
   });
   win.setMenu(null);
   win.view = view;
   win.loadURL(outputUrl(view));
   win.webContents.on('before-input-event', (e, input) => {
-    if (input.type === 'keyDown' && input.key === 'Escape' && input.shift) win.close();
+    if (input.type === 'keyDown' && input.key === 'Escape') win.close(); // Esc closes a fullscreen output
   });
   win.on('closed', () => {
     outputs.delete(key);
@@ -355,6 +361,10 @@ ipcMain.handle('desktop:command', async (_e, name, params = {}) => {
     return desktopInfo();
   }
   if (name === 'disconnect') return disconnect(), desktopInfo();
+  if (name === 'openShowsFolder') {
+    await shell.openPath(srv.showsDir);
+    return desktopInfo();
+  }
   if (name === 'setTakeover') {
     writePrefs({ takeover: ['viewer', 'overlay'].includes(params.view) ? params.view : 'none' });
     applyTakeover();

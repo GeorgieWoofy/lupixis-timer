@@ -16,6 +16,8 @@ const forcedLayout = params.get('layout');
 const always = flag('always', false);
 if (flag('checker', false)) document.body.classList.add('checker'); // controller preview
 autoHideCursor();
+// Esc closes a fullscreen output window in the desktop app.
+addEventListener('keydown', (e) => e.key === 'Escape' && window.lupixisDesktop?.closeOutput?.());
 
 const conn = new Connection({ role: flag('preview', false) ? 'preview' : 'overlay' });
 

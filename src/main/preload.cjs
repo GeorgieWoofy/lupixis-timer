@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('lupixisDesktop', {
   dragEnd: () => ipcRenderer.send('floating:drag-end'),
 
   toggleFullscreen: () => ipcRenderer.send('controller:fullscreen'),
+  closeOutput: () => ipcRenderer.send('output:close'), // fullscreen output windows: Esc closes them
 
   // this computer: floating window, fullscreen outputs, which timer we're connected to
   info: () => ipcRenderer.invoke('desktop:info'),

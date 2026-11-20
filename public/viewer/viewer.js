@@ -26,6 +26,9 @@ const desktop = window.lupixisDesktop;
 body.classList.toggle('has-window-api', !!desktop);
 $('ctlMin').onclick = () => desktop?.minimize();
 $('ctlClose').onclick = () => (desktop ? desktop.close() : conn.action('app', { command: 'closeFloating' }).catch(() => window.close()));
+// Esc closes a fullscreen output window (the desktop app ignores this for other windows).
+if (desktop && !floating) addEventListener('keydown', (e) => e.key === 'Escape' && desktop.closeOutput?.());
+
 // Move the floating window by dragging anywhere that isn't a button.
 if (desktop && floating) {
   document.addEventListener('mousedown', (e) => {
@@ -42,6 +45,7 @@ document.querySelectorAll('#controls [data-action]').forEach((b) => {
 let lastTimerText = '';
 let lastLayoutKey = '';
 let lastIdleKey = null;
+let flashOvertime = false; // current cue wants the time to pulse in overtime
 let lang = null;
 let opts = {};
 
@@ -68,7 +72,8 @@ conn.on('state', async (s) => {
 
   const i = s.rundown.findIndex((c) => c.id === s.currentId);
   const cue = s.rundown[i];
-  const next = s.rundown[i + 1];
+  const next = s.rundown.slice(i + 1).find((c) => !c.kind || c.kind === 'cue'); // skip headings/notes
+  flashOvertime = !!cue?.flashOvertime;
   els.title.textContent = cue ? [cue.title, cue.speaker].filter(Boolean).join(' · ') : '';
   els.next.textContent = next ? `${t('viewer.next')}: ${next.title || t('viewer.untitled')}` : '';
 
@@ -114,7 +119,7 @@ function frame() {
       body.classList.toggle('show-date', idle && idleMode === 'clockDate');
       requestAnimationFrame(refit);
     }
-    const text = idle ? formatClock(now, s.settings.viewer.clock24) : timerText(c);
+    const text = idle ? formatClock(now, s.settings.clock24) : timerText(c);
     if (text !== lastTimerText) {
       const lengthChanged = text.length !== lastTimerText.length;
       els.timer.textContent = text;
@@ -129,10 +134,11 @@ function frame() {
       }
     }
     setPhase(idle ? 'normal' : c.phase);
+    body.classList.toggle('pulse-overtime', !idle && flashOvertime && c.phase === 'overtime');
     body.classList.toggle('paused', c.loaded && !c.running && c.started);
     body.classList.toggle('running', c.running);
     els.progressFill.style.width = `${(c.progress * 100).toFixed(2)}%`;
-    els.clock.textContent = formatClock(now, s.settings.viewer.clock24);
+    els.clock.textContent = formatClock(now, s.settings.clock24);
     body.classList.toggle('flashing', s.flashUntil > now);
     renderClips();
   }

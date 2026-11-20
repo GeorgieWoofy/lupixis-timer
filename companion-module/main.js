@@ -107,7 +107,7 @@ class LupixisTimerInstance extends InstanceBase {
 			on_air: s.overlay.onAir ? 'true' : 'false',
 			layout: s.overlay.layout,
 		}
-		s.rundown.slice(0, MAX_CUE_VARIABLES).forEach((c, i) => (vals[`cue_${i + 1}_title`] = c.title))
+		s.rundown.filter((c) => !c.kind || c.kind === 'cue').slice(0, MAX_CUE_VARIABLES).forEach((c, i) => (vals[`cue_${i + 1}_title`] = c.title))
 		this.setVariableValues(vals)
 		this.checkFeedbacks('message_visible', 'preset_visible', 'blackout', 'on_air', 'layout_active', 'floating_open')
 	}
@@ -140,7 +140,7 @@ class LupixisTimerInstance extends InstanceBase {
 	/** (Re)build definitions when the rundown length or quick messages change, so presets match the show. */
 	updateDefinitions(force = false) {
 		const s = this.state
-		const key = JSON.stringify([s ? Math.min(s.rundown.length, MAX_CUE_VARIABLES) : 0, s ? s.messagePresets : []])
+		const key = JSON.stringify([s ? Math.min(s.rundown.filter((c) => !c.kind || c.kind === 'cue').length, MAX_CUE_VARIABLES) : 0, s ? s.messagePresets : []])
 		if (!force && key === this.definitionsKey) return
 		this.definitionsKey = key
 		this.setActionDefinitions(getActions(this))

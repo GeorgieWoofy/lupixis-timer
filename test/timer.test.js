@@ -108,3 +108,62 @@ test('engine: messages and presets', () => {
     e.destroy();
   }
 });
+
+test('groups and notes are skipped by next/previous, numbering and the schedule', () => {
+  const e = new Engine();
+  try {
+    e.dispatch('replaceRundown', {
+      rundown: [
+        { kind: 'group', title: 'Morning' },
+        { title: 'A', duration: 60000, start: '09:00' },
+        { kind: 'note', title: 'Break 20:00' },
+        { title: 'B', duration: 60000 },
+      ],
+    });
+    assert.equal(e.currentCue().title, 'A'); // first timer, not the heading
+    e.dispatch('next');
+    assert.equal(e.currentCue().title, 'B'); // note skipped
+    e.dispatch('load', { index: 2 });
+    assert.equal(e.currentCue().title, 'B'); // index counts timers only
+    assert.throws(() => e.dispatch('load', { id: e.state.rundown[0].id }));
+    const sched = computeSchedule(e.state.rundown);
+    assert.equal(formatTimeOfDay(sched[3].start), '09:01');
+  } finally {
+    e.destroy();
+  }
+});
+
+test('12-hour clock parsing and formatting', async () => {
+  const { parseClockTime } = await import('../public/shared/timecalc.js');
+  assert.equal(parseClockTime('2:30 PM'), 14 * 3600 + 30 * 60);
+  assert.equal(parseClockTime('12:05am'), 5 * 60);
+  assert.equal(parseClockTime('13:00 pm'), null);
+  assert.equal(formatTimeOfDay(14 * 3600 + 30 * 60, false), '2:30 PM');
+  assert.equal(formatTimeOfDay(0, false), '12:00 AM');
+});
+
+test('show library: save, list, load and the unsaved marker', async () => {
+  const os = await import('node:os');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { startServer } = await import('../src/server/index.js');
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'lupixis-test-'));
+  const srv = await startServer({ port: 4970, dataDir });
+  const call = (p, body) => fetch(`http://localhost:${srv.port}${p}`, body ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) } : {}).then((r) => r.json());
+  try {
+    srv.engine.dispatch('replaceRundown', { rundown: [{ title: 'Day 1 opener', duration: 60000 }] });
+    assert.equal(srv.engine.state.show.dirty, true);
+    assert.equal((await call('/api/shows/save', { name: 'Day 1' })).ok, true);
+    assert.equal(srv.engine.state.show.dirty, false);
+    srv.engine.dispatch('newShow');
+    assert.equal(srv.engine.state.rundown.length, 0);
+    const list = await call('/api/shows');
+    assert.deepEqual(list.map((x) => [x.name, x.cues]), [['Day 1', 1]]);
+    await call('/api/shows/load', { name: 'Day 1' });
+    assert.equal(srv.engine.state.rundown[0].title, 'Day 1 opener');
+    assert.equal(srv.engine.state.show.name, 'Day 1');
+    assert.ok(fs.existsSync(path.join(dataDir, 'shows', 'Day 1.json')));
+  } finally {
+    await srv.close();
+  }
+});

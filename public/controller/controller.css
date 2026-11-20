@@ -60,8 +60,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 @media (max-width: 800px) {
   .layout { grid-template-columns: 1fr; padding: 10px; }
   .col-now { position: static; max-height: none; }
-  .cue-grid { grid-template-columns: 26px 1fr 70px 98px !important; }
-  .cue-grid .c-start, .cue-grid .c-end, .cue-header span:nth-child(4), .cue-header span:nth-child(6) { display: none; }
 }
 
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; display: flex; flex-direction: column; gap: 12px; }
@@ -143,10 +141,6 @@ input[type=range] { width: 100%; accent-color: var(--accent); }
 .cue-grid { display: grid; grid-template-columns: 26px minmax(130px, 1fr) 108px 64px 70px 64px 44px 98px; gap: 5px; align-items: center; }
 .cue-header .h-time { text-align: right; padding-right: 8px; }
 .cue-header .h-auto { text-align: center; font-size: 10px; cursor: help; text-decoration: underline dotted; }
-@media (max-width: 1050px) {
-  .cue-grid { grid-template-columns: 26px minmax(110px, 1fr) 64px 70px 64px 98px; }
-  .cue-grid .c-mode, .cue-grid .c-auto, .cue-header span:nth-child(3), .cue-header span:nth-child(7) { display: none; }
-}
 .cue-header { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 10px; }
 #cueList { display: flex; flex-direction: column; gap: 6px; }
 .cue { border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); position: relative; overflow: hidden; }
@@ -313,9 +307,6 @@ body.touch .cue .c-title input { min-height: 34px; }
 body.touch .cue .c-actions .btn { width: 40px; min-height: 40px; }
 body.touch .cue .c-actions svg { width: 18px; height: 18px; }
 body.touch .layout { grid-template-columns: 360px minmax(420px, 1fr) 360px; }
-body.touch .cue-grid { grid-template-columns: 30px minmax(120px, 1fr) 70px 76px 70px 46px 130px; }
-body.touch .cue-grid .c-mode, body.touch .cue-header span:nth-child(3) { display: none; }
-body.touch .cue-more .touch-only { display: flex; }
 body.touch .cue-num { font-size: 18px; }
 body.touch .presets .btn { min-height: 52px; font-size: 15px; }
 body.touch .sw { width: 44px; height: 44px; border-radius: 10px; }
@@ -324,7 +315,90 @@ body.touch .menu-list button { padding: 14px 12px; }
 body.touch .topbtn { min-height: 38px; }
 @media (max-width: 1050px) {
   body.touch .layout { grid-template-columns: 1fr; }
-  body.touch .cue-grid { grid-template-columns: 30px minmax(110px, 1fr) 70px 76px 70px 130px; }
 }
 
-.cue-more .touch-only { display: none; }
+
+/* ---- rundown columns adapt to the rundown panel's own width (not the window) ----
+   Columns: 1 #, 2 title, 3 type, 4 start, 5 duration, 6 end, 7 auto-next, 8 actions.
+   As space runs out: Type moves into the cue's ⋯ panel, then Auto-next, then Start/End hide. */
+.rundown-card { container-type: inline-size; container-name: rundown; }
+.cue-more .type-alt, .cue-more .auto-alt { display: none; }
+.cue-more .wide-check { grid-column: 1 / -1; }
+.c-mode, .c-auto, .c-start, .c-end { min-width: 0; }
+@container rundown (max-width: 700px) {
+  .cue-grid { grid-template-columns: 26px minmax(110px, 1fr) 64px 70px 64px 44px 98px; }
+  .cue-grid .c-mode, .cue-header span:nth-child(3) { display: none; }
+  .cue-more .type-alt { display: flex; }
+}
+@container rundown (max-width: 590px) {
+  .cue-grid { grid-template-columns: 26px minmax(110px, 1fr) 64px 70px 64px 98px; }
+  .cue-grid .c-auto, .cue-header span:nth-child(7) { display: none; }
+  .cue-more .auto-alt { display: flex; }
+}
+@container rundown (max-width: 480px) {
+  .cue-grid { grid-template-columns: 26px minmax(100px, 1fr) 70px 98px; }
+  .cue-grid .c-start, .cue-grid .c-end, .cue-header span:nth-child(4), .cue-header span:nth-child(6) { display: none; }
+}
+/* Touch mode: bigger columns, Type always in the ⋯ panel. */
+body.touch .cue-grid { grid-template-columns: 30px minmax(120px, 1fr) 70px 76px 70px 46px 130px; }
+body.touch .cue-grid .c-mode, body.touch .cue-header span:nth-child(3) { display: none; }
+body.touch .cue-more .type-alt { display: flex; }
+@container rundown (max-width: 660px) {
+  body.touch .cue-grid { grid-template-columns: 30px minmax(110px, 1fr) 70px 76px 70px 130px; }
+  body.touch .cue-grid .c-auto, body.touch .cue-header span:nth-child(7) { display: none; }
+  body.touch .cue-more .auto-alt { display: flex; }
+}
+@container rundown (max-width: 540px) {
+  body.touch .cue-grid { grid-template-columns: 30px minmax(100px, 1fr) 76px 130px; }
+  body.touch .cue-grid .c-start, body.touch .cue-grid .c-end, body.touch .cue-header span:nth-child(4), body.touch .cue-header span:nth-child(6) { display: none; }
+}
+
+/* ---- early / late markers under Start and End ---- */
+.c-start, .c-end { display: flex; flex-direction: column; }
+.delta { font-size: 11px; font-weight: 700; text-align: right; padding-right: 6px; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.delta:empty { display: none; }
+.delta.late { color: var(--red); }
+.delta.early { color: var(--green); }
+
+/* ---- group headings and notes ---- */
+.group-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 10px; margin-top: 10px;
+  background: transparent; border: 0; border-bottom: 2px solid var(--blue); border-radius: 0;
+}
+.group-row:first-child { margin-top: 0; }
+.group-toggle { width: 26px; height: 26px; border: 0; background: none; color: var(--blue); cursor: pointer; font-size: 16px; padding: 0; }
+.group-title { flex: 1; min-width: 0; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; background: transparent; border-color: transparent !important; }
+.group-title:focus { border-color: var(--accent) !important; background: var(--bg); }
+.group-summary { white-space: nowrap; }
+.group-handle, .note-icon { cursor: grab; color: var(--muted); user-select: none; padding: 0 4px; }
+.btn.icon-sm { width: 28px; min-height: 28px; padding: 0; color: var(--muted); }
+.btn.icon-sm:hover { color: var(--red); }
+.cue.in-collapsed { display: none; }
+.note-row {
+  display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 14px;
+  background: rgba(253, 202, 64, 0.07); border: 1px dashed rgba(253, 202, 64, 0.35);
+}
+.note-icon { color: var(--yellow); }
+.note-text { flex: 1; min-width: 0; font-style: italic; color: var(--yellow); background: transparent; border-color: transparent !important; min-height: 30px !important; }
+.note-text:focus { border-color: var(--accent) !important; background: var(--bg); }
+body.touch .group-toggle { width: 40px; height: 40px; font-size: 20px; }
+body.touch .btn.icon-sm { width: 40px; min-height: 40px; }
+
+/* Per-cue "flash time in overtime" on the controller's own big clock too. */
+.now.pulse-overtime .bigtime { animation: overtime-pulse 1.6s ease-in-out infinite; }
+@keyframes overtime-pulse { 50% { opacity: 0.25; } }
+
+/* ---- show library ---- */
+.show-chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 260px; padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text); cursor: pointer; font-size: 12px; font-weight: 600;
+}
+.show-chip span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.show-chip.unnamed { color: var(--muted); font-style: italic; }
+.show-chip .dirty { color: var(--yellow); font-size: 10px; }
+.show-chip:hover { border-color: var(--blue); }
+.show-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow-y: auto; }
+.show-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-2); }
+.show-item.current { border-color: var(--blue); }
+.show-meta { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.show-meta b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

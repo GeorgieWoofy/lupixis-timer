@@ -40,6 +40,12 @@ body.paused #pausedBadge { display: inline-block; }
 body.show-date #date { display: block; }
 /* Time of day while idle: no progress bar, no duplicate small clock. */
 body.idle-clock #progress { visibility: hidden; }
+/* Time of day is dimmer than a running timer, so nobody mistakes it for a countdown. */
+body.idle-clock #timer { color: rgba(255, 255, 255, 0.72); }
+body.idle-clock #date { color: rgba(255, 255, 255, 0.5); }
+/* Per-cue option: the time fades in and out while in overtime (only the digits, no white flash). */
+body.pulse-overtime #timer { animation: overtime-pulse 1.6s ease-in-out infinite; }
+@keyframes overtime-pulse { 50% { opacity: 0.2; } }
 body.idle-clock #clock { visibility: hidden; }
 #timer {
   font-weight: 700; line-height: 1; white-space: nowrap; letter-spacing: -0.02em;

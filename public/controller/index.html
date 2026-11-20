@@ -82,12 +82,19 @@
       <div class="card rundown-card">
         <div class="card-head">
           <h2 data-i18n="rundown.title">Rundown</h2>
+          <button class="show-chip" id="showChip" data-i18n-title="shows.open"><span id="showName"></span><span class="dirty" id="showDirty">●</span></button>
           <span class="muted small" id="rundownTotal"></span>
           <div class="spacer"></div>
           <button class="btn primary" id="btnAddCue">+ <span data-i18n="rundown.add">Add cue</span></button>
           <details class="menu">
             <summary class="btn" data-i18n-title="rundown.more">⋯</summary>
             <div class="menu-list">
+              <button id="btnShows" data-i18n="shows.menu">Saved shows…</button>
+              <button id="btnSaveShow" data-i18n="shows.save">Save show (Ctrl+S)</button>
+              <hr>
+              <button id="btnAddGroup" data-i18n="rundown.addGroup">Add group heading</button>
+              <button id="btnAddNote" data-i18n="rundown.addNote">Add note for the operator</button>
+              <hr>
               <button id="btnImportCsv" data-i18n="rundown.importCsv">Import from spreadsheet…</button>
               <button id="btnExportShow" data-i18n="rundown.exportShow">Export show file</button>
               <button id="btnImportShow" data-i18n="rundown.importShow">Import show file…</button>
@@ -335,7 +342,7 @@
           <p class="hint" data-i18n="outputs.floatingHint">A small always-on-top window you can place over PowerPoint's presenter view. Drag to move, drag the edges to resize.</p>
           <button class="btn primary wide" id="btnFloating"></button>
           <div class="card-title sub"><span data-i18n="outputs.screens">Fullscreen outputs</span></div>
-          <p class="hint" data-i18n="outputs.screensHint">Open a view fullscreen on a connected monitor, projector or LED processor. Press Shift+Esc on that screen to close it.</p>
+          <p class="hint" data-i18n="outputs.screensHint">Open a view fullscreen on a connected monitor, projector or LED processor. Press Esc on that screen to close it.</p>
           <div id="displayList"></div>
           <label class="field"><span data-i18n="outputs.takeover">When a second screen is connected, fill it with</span>
             <select id="takeoverSelect">
@@ -360,6 +367,7 @@
       <div class="card tab" id="tab-settings" hidden>
         <label class="field"><span data-i18n="settings.language">Language</span><select id="setLanguage"></select></label>
         <p class="hint" data-i18n="settings.translateHint">Translations live in public/locales. Copy en.json to add a new language.</p>
+        <label class="check"><input type="checkbox" id="setClock24"><span data-i18n="settings.clock24General">24-hour clock (everywhere in the app)</span></label>
 
         <div class="card-title sub"><span data-i18n="settings.defaults">New cue defaults</span></div>
         <div class="row">
@@ -374,7 +382,6 @@
         <label class="check"><input type="checkbox" data-viewer="showClock"><span data-i18n="settings.showClock">Time of day</span></label>
         <label class="check"><input type="checkbox" data-viewer="showNext"><span data-i18n="settings.showNext">Next cue</span></label>
         <label class="check"><input type="checkbox" data-viewer="showProgress"><span data-i18n="settings.showProgress">Progress bar</span></label>
-        <label class="check"><input type="checkbox" data-viewer="clock24"><span data-i18n="settings.clock24">24-hour clock</span></label>
         <label class="field"><span data-i18n="settings.idleDisplay">When no timer is running, show</span>
           <select data-viewer-select="idleDisplay">
             <option value="timer" data-i18n="settings.idleTimer">The timer (ready to start)</option>
@@ -432,6 +439,23 @@
         <button class="btn primary" value="ok" id="csvOk" data-i18n="csv.import">Import</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="showsDialog">
+    <div class="dialog">
+      <div class="row"><h3 class="grow" data-i18n="shows.title">Saved shows</h3><button class="btn small" id="btnShowsClose" data-i18n="common.close">Close</button></div>
+      <form class="row" id="saveAsForm">
+        <input id="saveAsName" data-i18n-placeholder="shows.namePlaceholder" autocomplete="off">
+        <button class="btn primary" type="submit" data-i18n="shows.saveAs">Save as</button>
+      </form>
+      <div id="showList" class="show-list"></div>
+      <div class="row wrap">
+        <button class="btn" id="btnNewShow" data-i18n="shows.new">New empty show</button>
+        <div class="spacer"></div>
+        <button class="btn" id="btnOpenShowsFolder" hidden data-i18n="shows.openFolder">Open shows folder</button>
+      </div>
+      <p class="hint" data-i18n="shows.hint">Shows are saved as files in the app's "shows" folder, so you can back them up or copy them to another computer. Saving keeps the rundown, quick messages and broadcast look; computer settings stay as they are.</p>
+    </div>
   </dialog>
 
   <input type="file" id="fileInput" hidden>

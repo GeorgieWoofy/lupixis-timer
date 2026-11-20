@@ -57,6 +57,26 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
   const saver = createSaver(dataDir, () => engine.state);
   const uploadDir = path.join(dataDir, 'uploads');
   fs.mkdirSync(uploadDir, { recursive: true });
+  // Saved shows: plain JSON files the user can also copy, back up or share.
+  const showsDir = path.join(dataDir, 'shows');
+  fs.mkdirSync(showsDir, { recursive: true });
+  const showFile = (name) => {
+    const safe = String(name || '').replace(/[^\p{L}\p{N} _().,&+-]+/gu, '').trim().slice(0, 80);
+    if (!safe) throw new Error('Give the show a name');
+    return path.join(showsDir, `${safe}.json`);
+  };
+  const listShows = () =>
+    fs.readdirSync(showsDir)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => {
+        const file = path.join(showsDir, f);
+        let cues = 0;
+        try {
+          cues = (JSON.parse(fs.readFileSync(file, 'utf8')).rundown || []).filter((c) => !c.kind || c.kind === 'cue').length;
+        } catch {}
+        return { name: f.slice(0, -5), modified: fs.statSync(file).mtimeMs, cues };
+      })
+      .sort((a, b) => b.modified - a.modified);
 
   const server = http.createServer((req, res) => {
     handleHttp(req, res).catch((err) => sendJson(res, 500, { ok: false, error: err.message }));
@@ -133,6 +153,38 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
         const show = { app: PKG.productName, version: 1, exportedAt: new Date().toISOString(), rundown: s.rundown, messagePresets: s.messagePresets, overlay: s.overlay, theme: s.theme, settings: s.settings };
         res.writeHead(200, { 'Content-Type': MIME['.json'], 'Content-Disposition': `attachment; filename="show-${dateStamp()}.json"` });
         return res.end(JSON.stringify(show, null, 2));
+      }
+      // ---- show library: <data folder>/shows/*.json ----
+      case 'shows':
+        return sendJson(res, 200, listShows());
+      case 'shows/save': {
+        const { name } = await readJson(req);
+        const file = showFile(name);
+        const s = engine.state;
+        const show = { app: PKG.productName, version: 1, savedAt: new Date().toISOString(), rundown: s.rundown, messagePresets: s.messagePresets, overlay: { ...s.overlay, onAir: false }, theme: s.theme };
+        fs.writeFileSync(file, JSON.stringify(show, null, 2));
+        engine.state.show = { name: path.basename(file, '.json'), dirty: false };
+        engine.emit('change', { persist: true, action: 'saveShow' });
+        return sendJson(res, 200, { ok: true, name: engine.state.show.name });
+      }
+      case 'shows/load': {
+        const { name } = await readJson(req);
+        const file = showFile(name);
+        if (!fs.existsSync(file)) return sendJson(res, 404, { ok: false, error: 'Show not found' });
+        const { settings, ...show } = JSON.parse(fs.readFileSync(file, 'utf8')); // settings belong to the computer, not the show
+        engine.state.log = []; // a fresh show starts a fresh show report
+        engine.dispatch('importShow', { show, name: path.basename(file, '.json') });
+        return sendJson(res, 200, { ok: true });
+      }
+      case 'shows/delete': {
+        const { name } = await readJson(req);
+        const file = showFile(name);
+        if (fs.existsSync(file)) fs.rmSync(file);
+        if (engine.state.show?.name === path.basename(file, '.json')) {
+          engine.state.show = { name: '', dirty: true };
+          engine.emit('change', { persist: true });
+        }
+        return sendJson(res, 200, { ok: true });
       }
       case 'report.csv': {
         const rows = [['#', 'Title', 'Speaker', 'Planned', 'Actual', 'Difference', 'Started', 'Ended']];
@@ -221,9 +273,10 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
   function tickPayload() {
     const s = engine.state;
     const c = engine.computed();
-    const i = engine.currentIndex();
-    const cue = s.rundown[i];
-    const next = s.rundown[i + 1];
+    const cues = engine.cues(); // group headings and notes don't count
+    const i = engine.currentCueIndex();
+    const cue = cues[i];
+    const next = cues[i + 1];
     return {
       loaded: c.loaded,
       running: c.running,
@@ -237,7 +290,7 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
       elapsedSeconds: c.loaded ? Math.floor(c.elapsed / 1000) : 0,
       progress: Math.round(c.progress * 100),
       cueIndex: i + 1,
-      cueCount: s.rundown.length,
+      cueCount: cues.length,
       cueTitle: cue?.title || '',
       cueSpeaker: cue?.speaker || '',
       nextTitle: next?.title || '',
@@ -296,6 +349,7 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
     port: actualPort,
     addresses,
     beacon,
+    showsDir,
     async close() {
       beacon?.stop();
       clipManager.stop();
@@ -303,6 +357,7 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
       engine.destroy();
       saver.flush();
       for (const ws of wss.clients) ws.terminate();
+      server.closeAllConnections?.(); // don't wait for idle keep-alive connections
       await new Promise((r) => server.close(r));
     },
   };

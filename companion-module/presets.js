@@ -72,7 +72,7 @@ function getPresets(self) {
 	p.floating = button('Screens', 'Floating timer', 'FLOAT\\nTIMER', [['floating', { mode: 'toggle' }]], [fb('floating_open', { bgcolor: ACCENT })], { size: '14' })
 
 	// ---- Cues (one button per cue in the current rundown) ----
-	const count = self.state ? Math.min(self.state.rundown.length, MAX_CUE_VARIABLES) : 0
+	const count = self.state ? Math.min(self.state.rundown.filter((c) => !c.kind || c.kind === 'cue').length, MAX_CUE_VARIABLES) : 0
 	for (let i = 1; i <= count; i++) {
 		p[`cue_${i}`] = button('Cues', `Load cue ${i}`, `${i}\\n${v(`cue_${i}_title`)}`, [['load_cue', { index: i, autostart: false }]], [
 			fb('cue_current', { bgcolor: ACCENT, color: WHITE }, { index: i }),

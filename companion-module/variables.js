@@ -25,7 +25,7 @@ function getVariableDefinitions(self) {
 		{ variableId: 'clip_remaining', name: 'Playing clip: time left' },
 		{ variableId: 'clip_remaining_seconds', name: 'Playing clip: seconds left' },
 	]
-	const count = self.state ? Math.min(self.state.rundown.length, MAX_CUE_VARIABLES) : 0
+	const count = self.state ? Math.min(self.state.rundown.filter((c) => !c.kind || c.kind === 'cue').length, MAX_CUE_VARIABLES) : 0
 	for (let i = 1; i <= count; i++) defs.push({ variableId: `cue_${i}_title`, name: `Title of cue ${i}` })
 	return defs
 }
