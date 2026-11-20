@@ -55,6 +55,7 @@ export function defaultState() {
       defaultDuration: 300000,
       defaultWarning: 120000,
       defaultCritical: 30000,
+      defaultFlashOvertime: false, // new cues: pulse the time on screens when they run over
       // idleDisplay: what to show when no timer is running: 'timer' | 'clock' | 'clockDate'
       viewer: { showClock: true, showTitle: true, showNext: true, showProgress: true, clock24: true, idleDisplay: 'timer', showClips: true },
       // The floating window has its own options. controls: 'hover' | 'always' | 'off'
@@ -182,6 +183,7 @@ export class Engine extends EventEmitter {
       start: '',
       warning: s.defaultWarning,
       critical: s.defaultCritical,
+      flashOvertime: !!s.defaultFlashOvertime,
       autoAdvance: false,
       ...patch,
     });
@@ -226,6 +228,7 @@ export class Engine extends EventEmitter {
     const tt = this.state.timer;
     if (tt.running && tt.mode !== 'clock') return;
     tt.running = true;
+    tt.pausedAt = null;
     if (tt.mode !== 'clock') tt.startedAt = Date.now();
     this.openLogEntry();
   }
@@ -233,9 +236,11 @@ export class Engine extends EventEmitter {
   pauseTimer() {
     const t = this.state.timer;
     if (!t.running || t.mode === 'clock') return;
-    t.elapsedBefore += Date.now() - t.startedAt;
+    const now = Date.now();
+    t.elapsedBefore += now - t.startedAt;
     t.startedAt = null;
     t.running = false;
+    t.pausedAt = now; // lets the rundown freeze the expected end while paused
   }
 
   step(delta, { autostart = false } = {}) {

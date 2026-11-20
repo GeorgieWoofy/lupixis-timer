@@ -268,6 +268,7 @@
     "controlsOff": "Hidden",
     "floatingOpacity": "Window opacity",
     "autoStart": "Start cues automatically at their start time",
+    "defaultFlashOvertime": "Flash the time on screens when a cue runs over",
     "hotkeys": "Global hotkeys",
     "hotkeysHint": "Work even while PowerPoint is in front. Click a field and press the key combination. Backspace clears it.",
     "hotkeyNone": "Not set",

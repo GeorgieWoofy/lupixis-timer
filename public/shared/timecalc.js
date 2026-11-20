@@ -59,6 +59,7 @@ export function computeTimer(t, now) {
     phase,
     progress,
     started: t.mode === 'clock' || elapsed > 0 || !!t.running,
+    pausedAt: t.running ? null : t.pausedAt ?? null, // when it was paused (server ms), if paused
   };
 }
 
@@ -246,14 +247,14 @@ export function projectSchedule(rundown, sched, log, currentId, c, nowSod, toSod
       r = { start: null, end: null, startActual: false, endActual: false, state: 'skipped' }; // jumped over
     } else if (isCur && c.started) {
       const start = log && !log.endedAt ? nearDay(toSod(log.startedAt), ref) : nowSod - Math.max(0, c.elapsed) / 1000;
-      const end = cue.mode === 'clock' ? plan.end : nowSod + Math.max(0, c.remaining) / 1000;
+      // Running: now + time left. Paused: frozen at the moment it was paused (fields don't tick while nothing runs).
+      const base = c.running || c.pausedAt == null ? nowSod : nearDay(toSod(c.pausedAt), nowSod);
+      const end = cue.mode === 'clock' ? plan.end : base + Math.max(0, c.remaining) / 1000;
       r = { start, end, startActual: true, endActual: false, state: 'current' };
     } else {
-      // Not started yet (the loaded cue, or later ones).
-      let start = plan.explicit ? plan.start : prevEnd ?? plan.start;
-      // Nothing can start in the past. (A later cue with its own start time keeps it: it will start itself then.)
-      if ((!plan.explicit || isCur) && start != null) start = Math.max(start, nowSod);
-      if (isCur && start == null) start = nowSod;
+      // Not started yet (the loaded cue, or later ones): follow the previous cue's real/expected end, or the plan.
+      // Deliberately not based on the clock, so these fields only change when a timer runs or has run.
+      const start = plan.explicit ? plan.start : prevEnd ?? plan.start;
       const end = cue.mode === 'clock' ? plan.end : start != null ? start + dur : null;
       r = { start, end, startActual: false, endActual: false, state: isCur ? 'ready' : 'upcoming' };
     }

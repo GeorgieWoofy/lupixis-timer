@@ -1046,6 +1046,7 @@ document.querySelectorAll('[data-viewer]').forEach((cb) => {
   cb.onchange = () => quiet(act('updateSettings', { patch: { viewer: { [cb.dataset.viewer]: cb.checked } } }));
 });
 $('setKeepOnTop').onchange = () => quiet(act('updateSettings', { patch: { floatingKeepOnTop: $('setKeepOnTop').checked } }));
+$('setFlashOvertime').onchange = () => quiet(act('updateSettings', { patch: { defaultFlashOvertime: $('setFlashOvertime').checked } }));
 $('setClock24').onchange = () => quiet(act('updateSettings', { patch: { clock24: $('setClock24').checked } }));
 $('setAutoStart').onchange =() => quiet(act('updateSettings', { patch: { autoStartScheduled: $('setAutoStart').checked } }));
 document.querySelectorAll('[data-viewer-select]').forEach((el) => {
@@ -1153,6 +1154,7 @@ async function renderSettings(s) {
   document.querySelectorAll('[data-viewer]').forEach((cb) => setVal(cb, st.viewer[cb.dataset.viewer]));
   setVal($('setKeepOnTop'), st.floatingKeepOnTop);
   setVal($('setAutoStart'), st.autoStartScheduled);
+  setVal($('setFlashOvertime'), st.defaultFlashOvertime);
   setVal($('setClock24'), st.clock24 !== false);
   renderIntegrations(st);
   renderClipStatus();

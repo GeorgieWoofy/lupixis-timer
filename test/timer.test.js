@@ -237,3 +237,33 @@ test('clean start after a deliberate quit: last saved show, nothing running', as
     await srv.close();
   }
 });
+
+test('projected times do not move with the clock when nothing is running', async () => {
+  const { projectSchedule } = await import('../public/shared/timecalc.js');
+  const rundown = [{ id: 'a', duration: 60000 }, { id: 'b', duration: 300000 }, { id: 'c', duration: 300000 }];
+  const sched = computeSchedule(rundown);
+  const sod = (ms) => ms / 1000; // test clock: ms since midnight
+  const log = [{ cueId: 'a', startedAt: 10 * 3600e3, endedAt: 10 * 3600e3 + 60e3 }];
+  const ready = { started: false, running: false, elapsed: 0, remaining: 300000 };
+  const p1 = projectSchedule(rundown, sched, log, 'b', ready, 10 * 3600 + 300, sod);
+  const p2 = projectSchedule(rundown, sched, log, 'b', ready, 10 * 3600 + 900, sod);
+  assert.deepEqual(p1, p2, 'later clock, same fields');
+  assert.equal(formatTimeOfDay(p1[1].start), '10:01'); // follows A's real end
+  // Paused: the expected end is frozen at the moment of pausing.
+  const paused = { started: true, running: false, elapsed: 30000, remaining: 270000, pausedAt: (10 * 3600 + 120) * 1000 };
+  const log2 = [...log, { cueId: 'b', startedAt: (10 * 3600 + 90) * 1000, endedAt: null }];
+  const q1 = projectSchedule(rundown, sched, log2, 'b', paused, 10 * 3600 + 200, sod);
+  const q2 = projectSchedule(rundown, sched, log2, 'b', paused, 10 * 3600 + 600, sod);
+  assert.equal(q1[1].end, q2[1].end);
+});
+
+test('new cues take the "flash when over time" default', () => {
+  const e = new Engine();
+  try {
+    e.dispatch('updateSettings', { patch: { defaultFlashOvertime: true } });
+    const cue = e.dispatch('addCue', {});
+    assert.equal(cue.flashOvertime, true);
+  } finally {
+    e.destroy();
+  }
+});
