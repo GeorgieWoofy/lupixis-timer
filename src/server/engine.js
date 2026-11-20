@@ -64,6 +64,9 @@ export function defaultState() {
       integrations: {
         qlab: { enabled: false, host: '', port: 53000, passcode: '', filter: 'color', color: 'red', tag: '[T]' },
         caspar: { enabled: false, port: 6250, filter: 'all', layers: '', tag: '[T]' },
+        // PowerPoint (Windows): read by the desktop app on the computer running the slide show.
+        // filter: 'video' (videos only) | 'all' (videos and audio) | 'tag' (name or alt text contains tag)
+        ppt: { enabled: false, filter: 'video', tag: '[T]' },
       },
       autoStartScheduled: true, // cues with a start time start themselves when that time arrives
       hotkeys: {

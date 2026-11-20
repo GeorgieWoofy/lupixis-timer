@@ -175,6 +175,15 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
         res.writeHead(200, { 'Content-Type': MIME['.json'], 'Content-Disposition': `attachment; filename="show-${dateStamp()}.json"` });
         return res.end(JSON.stringify(show, null, 2));
       }
+      // ---- clips pushed in by a desktop app (e.g. PowerPoint videos on the presenting laptop) ----
+      case 'clips/external': {
+        if (req.method !== 'POST') return sendJson(res, 405, { ok: false, error: 'POST only' });
+        const { source, sender, clips } = await readJson(req);
+        if (source !== 'ppt') return sendJson(res, 400, { ok: false, error: 'Unknown clip source' });
+        if (!engine.state.settings.integrations?.ppt?.enabled) return sendJson(res, 200, { ok: true, ignored: true });
+        clipManager.setExternal(source, String(sender || 'unknown').slice(0, 60), clips);
+        return sendJson(res, 200, { ok: true });
+      }
       // ---- show library: <data folder>/shows/*.json ----
       case 'shows':
         return sendJson(res, 200, listShows());
@@ -218,6 +227,9 @@ export async function startServer({ port = 4848, host = '0.0.0.0', dataDir, anno
 
   // ---- WebSocket ------------------------------------------------------------
   const wss = new WebSocketServer({ server, path: '/ws' });
+  // The WebSocket server re-emits the HTTP server's errors (e.g. "port in use"). Those are handled by the
+  // listen loop below (it tries the next port); without this listener they would crash the process.
+  wss.on('error', () => {});
 
   // Count connected clients by role (viewer, overlay, floating, controller, companion, preview).
   const recount = () => {

@@ -274,7 +274,7 @@
 
       <!-- Clip timers -->
       <div class="card tab" id="tab-clips" hidden>
-        <div class="card-title"><span data-i18n="clips.title">Clip timers (QLab / CasparCG)</span></div>
+        <div class="card-title"><span data-i18n="clips.title">Clip timers (QLab / CasparCG / PowerPoint)</span></div>
         <p class="hint" data-i18n="clips.hint">While a tracked video or audio clip plays, speakers see a small pop-up with its name and time left.</p>
         <label class="check"><input type="checkbox" data-viewer="showClips"><span data-i18n="clips.showOnMonitor">Show on the confidence monitor</span></label>
         <label class="check"><input type="checkbox" data-floating="showClips"><span data-i18n="clips.showOnFloating">Show in the floating timer</span></label>
@@ -319,6 +319,22 @@
             </label>
             <label class="field" id="casparLayersField"><span data-i18n="clips.layers">Channel-layer</span><input data-integ="caspar.layers" placeholder="1-10, 1-20"></label>
             <label class="field" id="casparTagField" style="width:90px"><span data-i18n="clips.tag">Text</span><input data-integ="caspar.tag"></label>
+          </div>
+        </details>
+
+        <details class="section integ" open>
+          <summary><span>PowerPoint</span> <span class="istatus" id="pptStatus"></span></summary>
+          <label class="check"><input type="checkbox" data-integ="ppt.enabled"><span data-i18n="clips.enable">Enable</span></label>
+          <p class="hint" data-i18n="clips.pptHint">Windows. Reads the videos playing in the PowerPoint slide show on any computer running the Lupixis Timer desktop app: this one, or a presentation laptop connected to this timer (Outputs → This computer). Read-only: it never touches the presentation.</p>
+          <div class="row">
+            <label class="field grow"><span data-i18n="clips.which">Show cues that</span>
+              <select data-integ="ppt.filter">
+                <option value="video" data-i18n="clips.pptVideo">are videos</option>
+                <option value="all" data-i18n="clips.pptAll">are videos or audio</option>
+                <option value="tag" data-i18n="clips.pptTag">have this text in their name (Selection Pane) or alt text</option>
+              </select>
+            </label>
+            <label class="field" id="pptTagField" style="width:90px"><span data-i18n="clips.tag">Text</span><input data-integ="ppt.tag"></label>
           </div>
         </details>
 

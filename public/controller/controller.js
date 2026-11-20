@@ -1108,14 +1108,15 @@ function renderIntegrations(st) {
   $('qlabTagField').hidden = ig.qlab?.filter !== 'tag';
   $('casparLayersField').hidden = ig.caspar?.filter !== 'layers';
   $('casparTagField').hidden = ig.caspar?.filter !== 'tag';
+  $('pptTagField').hidden = ig.ppt?.filter !== 'tag';
 }
 function renderClipStatus() {
   const st = conn.clipStatus || {};
-  for (const src of ['qlab', 'caspar']) {
+  for (const src of ['qlab', 'caspar', 'ppt']) {
     const text = !st[src] || st[src] === 'off' ? t('clips.off') : st[src];
     const el = $(`${src}Status`);
     setText(el, text);
-    el.className = `istatus ${/^(Connected|Listening)/.test(text) ? 'ok' : text === t('clips.off') ? '' : 'warn'}`;
+    el.className = `istatus ${/^(Connected|Listening|Watching)/.test(text) ? 'ok' : text === t('clips.off') ? '' : 'warn'}`;
   }
 }
 conn.on('clips', renderClipStatus);
@@ -1133,7 +1134,7 @@ function renderClipList(clips) {
           return h('div', { class: `clip-item${s <= 10 ? ' ending' : ''}` },
             h('span', {}, `${c.paused ? '⏸' : '▶'} ${c.name}`),
             h('span', { class: 't' }, formatSeconds(s)),
-            h('span', { class: 'src' }, c.source === 'qlab' ? 'QLab' : `CasparCG ${c.key.split(':')[1]}`),
+            h('span', { class: 'src' }, c.source === 'qlab' ? 'QLab' : c.source === 'ppt' ? `PowerPoint · ${c.key.split(':')[1]}` : `CasparCG ${c.key.split(':')[1]}`),
           );
         })
       : [h('p', { class: 'hint' }, t('clips.none'))]),

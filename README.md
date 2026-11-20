@@ -24,7 +24,7 @@
 - [The rundown](#the-rundown)
 - [Confidence monitor & floating timer](#confidence-monitor--floating-timer)
 - [Broadcast graphics (OBS, vMix, LED walls)](#broadcast-graphics-obs-vmix-led-walls)
-- [Clip timers (QLab, CasparCG)](#clip-timers-qlab-casparcg)
+- [Clip timers (QLab, CasparCG, PowerPoint)](#clip-timers-qlab-casparcg-powerpoint)
 - [Bitfocus Companion / Stream Deck](#bitfocus-companion--stream-deck)
 - [Hotkeys](#hotkeys)
 - [HTTP API](#http-api)
@@ -155,7 +155,7 @@ URL options for `/overlay`: `?bg=transparent|black|chroma|magenta`, `?layout=ful
 
 ---
 
-## Clip timers (QLab, CasparCG)
+## Clip timers (QLab, CasparCG, PowerPoint)
 
 These show speakers how long a video has left, as a small pop-up with the clip name. You set them up in the **Clips** tab.
 
@@ -166,6 +166,8 @@ These show speakers how long a video has left, as a small pop-up with the clip n
 - or **all** running cues.
 
 Background loops and other cues stay hidden. If the workspace has an OSC passcode, enter it too.
+
+**PowerPoint (Windows):** switch it on in the **Clips** tab. The Lupixis Timer desktop app on the computer running the slide show reads the videos playing in the show and sends their time left to the timer. That computer can be the timer laptop itself, or a presentation laptop following the main timer (Outputs → This computer). It's read-only and never touches the presentation or takes focus. Choose videos only, videos and audio, or only media whose name (Selection Pane) or alt text contains a tag such as `[T]`. The tag is hidden from speakers.
 
 **CasparCG:** add the timer computer to `casparcg.config`:
 

@@ -292,7 +292,7 @@
     "toggleFloating": "Floating timer"
   },
   "clips": {
-    "title": "Clip timers (QLab / CasparCG)",
+    "title": "Clip timers (QLab / CasparCG / PowerPoint)",
     "nowPlaying": "Playing now",
     "none": "No tracked clip is playing.",
     "hint": "While a tracked video or audio clip plays, speakers see a small pop-up with its name and time left.",
@@ -314,7 +314,11 @@
     "casparAll": "play on any layer",
     "casparLayers": "play on these layers",
     "casparTag": "have this text in the file name",
-    "layers": "Channel-layer"
+    "layers": "Channel-layer",
+    "pptHint": "Windows. Reads the videos playing in the PowerPoint slide show on any computer running the Lupixis Timer desktop app: this one, or a presentation laptop connected to this timer (Outputs → This computer). Read-only: it never touches the presentation.",
+    "pptVideo": "are videos",
+    "pptAll": "are videos or audio",
+    "pptTag": "have this text in their name (Selection Pane) or alt text"
   },
   "companion": {
     "title": "Stream Deck (Bitfocus Companion)",

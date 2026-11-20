@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { startServer } from '../server/index.js';
 import { startListener } from '../server/discovery.js';
+import { PptReader, mediaToClip } from './ppt-reader.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ICON = path.join(__dirname, '../../build/icon.png');
@@ -72,6 +73,36 @@ async function pollRemoteSettings() {
 function onSettingsChanged() {
   registerHotkeys();
   applyFloatingOpacity();
+  updatePpt();
+}
+
+// ---- PowerPoint videos -> clip timers (Windows) ----
+// If the active timer (ours, or the one we follow) has PowerPoint clip timers switched on, read the slide
+// show on THIS computer and send what's playing to that timer. So it works whether PowerPoint runs on the
+// timer laptop or on a separate presentation laptop that follows the main timer.
+let ppt = null;
+let pptSent = '';
+function updatePpt() {
+  const enabled = process.platform === 'win32' && !!settings().integrations?.ppt?.enabled;
+  if (enabled && !ppt) {
+    ppt = new PptReader((items) => sendPpt(items));
+    ppt.start();
+  } else if (!enabled && ppt) {
+    ppt.stop();
+    ppt = null;
+    pptSent = '';
+  }
+}
+let pptLastPost = 0;
+function sendPpt(items) {
+  const cfg = settings().integrations?.ppt || {};
+  const clips = items.map((m) => mediaToClip(m, cfg)).filter(Boolean);
+  const body = JSON.stringify({ source: 'ppt', sender: os.hostname(), clips });
+  // Send on change, and at least once a second as a heartbeat (so the timer knows we're here).
+  if (body === pptSent && Date.now() - pptLastPost < 1000) return;
+  pptSent = body;
+  pptLastPost = Date.now();
+  fetch(`${activeBase()}/api/clips/external`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: AbortSignal.timeout(2000) }).catch(() => {});
 }
 
 /** Run an action on the active timer (used by hotkeys). */
@@ -561,6 +592,7 @@ app.whenReady().then(async () => {
   if (re?.url) await connect(re.url, re.name).catch(() => writePrefs({ reconnect: null }));
 
   registerHotkeys();
+  updatePpt();
   updateHost();
   createController();
   applyTakeover();
@@ -570,6 +602,7 @@ app.on('will-quit', async () => {
   srv?.markCleanExit(); // a deliberate quit: next start is clean (only a crash resumes a running timer)
   globalShortcut.unregisterAll();
   listener?.stop();
+  ppt?.stop();
   await srv?.close();
 });
 

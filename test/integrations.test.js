@@ -113,3 +113,56 @@ test('discovery: a beacon is heard by a listener', async () => {
     l.stop();
   }
 });
+
+test('PowerPoint media -> clip timers, with trims and filters', async () => {
+  const { mediaToClip } = await import('../src/main/ppt-reader.js');
+  const video = { id: '256-4', name: 'Sponsor reel [T]', alt: '', kind: 'video', state: 0, pos: 30000, len: 95000, start: 5000, end: 65000 };
+  const c = mediaToClip(video, { filter: 'video' });
+  assert.equal(c.name, 'Sponsor reel'); // tag hidden from speakers
+  assert.equal(c.duration, 60); // trimmed 5 s - 65 s
+  assert.equal(c.remaining, 35);
+  assert.equal(c.paused, false);
+  assert.equal(mediaToClip({ ...video, kind: 'audio' }, { filter: 'video' }), null);
+  assert.ok(mediaToClip({ ...video, kind: 'audio' }, { filter: 'all' }));
+  assert.equal(mediaToClip({ ...video, name: 'Loop' }, { filter: 'tag', tag: '[T]' }), null);
+  assert.equal(mediaToClip({ ...video, end: 0, start: 0, pos: 90000 }, {}).remaining, 5); // untrimmed
+});
+
+test('server accepts pushed PowerPoint clips only when enabled, and drops silent senders', async () => {
+  const os = await import('node:os');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { startServer } = await import('../src/server/index.js');
+  const srv = await startServer({ port: 4972, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'lupixis-ppt-')) });
+  const push = (clips) => fetch(`http://localhost:${srv.port}/api/clips/external`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source: 'ppt', sender: 'PRESENTER-PC', clips }) }).then((r) => r.json());
+  const clip = { key: 'ppt:1-2', name: 'Intro', duration: 60, elapsed: 10, remaining: 50, paused: false };
+  try {
+    assert.equal((await push([clip])).ignored, true, 'off by default');
+    srv.engine.dispatch('updateSettings', { patch: { integrations: { ppt: { enabled: true } } } });
+    await push([clip]);
+    const { getSnapshot } = { getSnapshot: () => fetch(`http://localhost:${srv.port}/api/timer`).then((r) => r.json()) };
+    const t = await getSnapshot();
+    assert.equal(t.clipName, 'Intro');
+    await new Promise((r) => setTimeout(r, 4200)); // sender goes quiet
+    assert.equal((await getSnapshot()).clipName, '');
+  } finally {
+    await srv.close();
+  }
+});
+
+test('server moves to the next port when 4848-style port is busy', async () => {
+  const net = await import('node:net');
+  const os = await import('node:os');
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const { startServer } = await import('../src/server/index.js');
+  const blocker = net.createServer().listen(4975, '0.0.0.0');
+  await new Promise((r) => blocker.once('listening', r));
+  const srv = await startServer({ port: 4975, dataDir: fs.mkdtempSync(path.join(os.tmpdir(), 'lupixis-port-')) });
+  try {
+    assert.equal(srv.port, 4976);
+  } finally {
+    await srv.close();
+    blocker.close();
+  }
+});

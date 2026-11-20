@@ -1,7 +1,7 @@
 {
   "name": "lupixis-timer",
   "productName": "Lupixis Timer",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "Show timer for confidence monitors, stage screens and broadcast overlays, with Bitfocus Companion control.",
   "license": "MIT",
   "type": "module",
